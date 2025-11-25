@@ -1,6 +1,6 @@
 {
   "name": "hic-straw",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "Utilities for reading .files (contact matrix files)",
   "main": "dist/hic-straw.js",
   "module": "dist/hic-straw.esm.js",

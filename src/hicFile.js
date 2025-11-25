@@ -1,4 +1,4 @@
-import Zlib from "./vendor/zlib_and_gzip.js"
+import Zlib from "./vendor/zlib_and_gzip.js";
 import BrowserLocalFile from './io/browserLocalFile.js';
 import RemoteFile from './io/remoteFile.js';
 import ThrottledFile from './io/throttledFile.js';
@@ -9,15 +9,15 @@ import Matrix from './matrix.js';
 import ContactRecord from './contactRecord.js';
 import LRU from './lru.js';
 import NormalizationVector from "./normalizationVector.js";
-import nvi from './nvi.js'
+import nvi from './nvi.js';
 
 const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 const Short_MIN_VALUE = -32768;
-const DOUBLE = 8
-const FLOAT = 4
+const DOUBLE = 8;
+const FLOAT = 4;
 const LONG = 8;
 const INT = 4;
-const GoogleRateLimiter = new RateLimiter(100)
+const GoogleRateLimiter = new RateLimiter(100);
 
 
 class HicFile {
@@ -25,39 +25,41 @@ class HicFile {
     constructor(args) {
 
         if (args.alert) {
-            this.alert = args.alert
+            this.alert = args.alert;
         }
 
-        this.config = args
+        this.config = args;
 
-        this.loadFragData = args.loadFragData
-        this.fragmentSitesCache = {}
-        this.normVectorCache = new LRU(10)
+        this.loadFragData = args.loadFragData;
+        this.fragmentSitesCache = {};
+        this.normVectorCache = new LRU(10);
         this.normalizationTypes = ['NONE'];
         this.matrixCache = new LRU(10);
         this.blockCache = new BlockCache();
+        this.normVectorIndexPosition = -1;
+        this.normVectorIndexSize = -1;
 
         // args may specify an io.File object, a local path (Node only), or a url
         if (args.file) {
-            this.file = args.file
+            this.file = args.file;
         } else if (args.blob) {
-            this.file = new BrowserLocalFile(args.blob)
+            this.file = new BrowserLocalFile(args.blob);
         } else if (args.url || (args.path && !isNode)) {
             this.url = args.url || this.path;
-            this.remote = true
+            this.remote = true;
 
             // Google drive must be rate limited.  Perhaps all remote files should be rate limited?
-            const remoteFile = new RemoteFile(args)
+            const remoteFile = new RemoteFile(args);
             if (isGoogleDrive(this.url)) {
-                this.file = new ThrottledFile(remoteFile, GoogleRateLimiter)
+                this.file = new ThrottledFile(remoteFile, GoogleRateLimiter);
             } else {
-                this.file = remoteFile
+                this.file = remoteFile;
             }
         } else if (args.path) {
             // path argument, assumed local file
-            throw Error(`path property is deprecated, use NodeLocalFile`)
+            throw Error(`path property is deprecated, use NodeLocalFile`);
         } else {
-            throw Error("Arguments must include file, blob, url, or path")
+            throw Error("Arguments must include file, blob, url, or path");
         }
     }
 
@@ -66,45 +68,45 @@ class HicFile {
         if (this.initialized) {
             return;
         } else {
-            await this.readHeaderAndFooter()
+            await this.readHeaderAndFooter();
             // Footer is read with header
             //await this.readFooter()
-            this.initialized = true
+            this.initialized = true;
         }
     }
 
     async getVersion() {
         if (this.version === undefined) {
-            const data = await this.file.read(0, 128)
+            const data = await this.file.read(0, 128);
             if (!data) {
                 return undefined;
             }
             const binaryParser = new BinaryParser(new DataView(data));
             this.magic = binaryParser.getString();
             this.version = binaryParser.getInt();
-            return this.version
+            return this.version;
         } else {
-            return this.version
+            return this.version;
         }
     }
 
     async getMetaData() {
-        await this.init()
-        return this.meta
+        await this.init();
+        return this.meta;
     }
 
     async readHeaderAndFooter() {
 
         // Read initial fields magic, version, and footer position
-        let data = await this.file.read(0, 16)
+        let data = await this.file.read(0, 16);
         if (!data || data.byteLength === 0) {
-            throw Error("File content is empty")
+            throw Error("File content is empty");
         }
         let binaryParser = new BinaryParser(new DataView(data));
         this.magic = binaryParser.getString();
         this.version = binaryParser.getInt();
         if (this.version < 5) {
-            throw Error("Unsupported hic version: " + this.version)
+            throw Error("Unsupported hic version: " + this.version);
         }
         this.footerPosition = binaryParser.getLong();
 
@@ -113,8 +115,8 @@ class HicFile {
         await this.readFooter();
 
         const bodyPostion = Object.values(this.masterIndex).reduce((min, currentValue) => {
-            return Math.min(min, currentValue.start)
-        }, Number.MAX_VALUE)
+            return Math.min(min, currentValue.start);
+        }, Number.MAX_VALUE);
 
         const remainingSize = bodyPostion - 16;
         data = await this.file.read(16, remainingSize);
@@ -134,9 +136,9 @@ class HicFile {
         }
 
         this.chromosomes = [];
-        this.chromosomeIndexMap = {}
+        this.chromosomeIndexMap = {};
         let nChrs = binaryParser.getInt();
-        let i = 0
+        let i = 0;
         while (nChrs-- > 0) {
             const chr = {
                 index: i,
@@ -148,7 +150,7 @@ class HicFile {
                 this.wholeGenomeResolution = Math.round(chr.size * (1000 / 500));    // Hardcoded in juicer
             }
             this.chromosomes.push(chr);
-            this.chromosomeIndexMap[chr.name] = chr.index
+            this.chromosomeIndexMap[chr.name] = chr.index;
             i++;
         }
 
@@ -180,15 +182,15 @@ class HicFile {
         }
 
         // Build lookup table for well-known chr aliases
-        this.chrAliasTable = {}
+        this.chrAliasTable = {};
         for (let chrName of Object.keys(this.chromosomeIndexMap)) {
 
             if (chrName.startsWith("chr")) {
-                this.chrAliasTable[chrName.substr(3)] = chrName
+                this.chrAliasTable[chrName.substr(3)] = chrName;
             } else if (chrName === "MT") {
-                this.chrAliasTable["chrM"] = chrName
+                this.chrAliasTable["chrM"] = chrName;
             } else {
-                this.chrAliasTable["chr" + chrName] = chrName
+                this.chrAliasTable["chr" + chrName] = chrName;
             }
         }
 
@@ -198,8 +200,8 @@ class HicFile {
             "version": this.version,
             "genome": this.genomeId,
             "chromosomes": this.chromosomes,
-            "resolutions": this.bpResolutions,
-        }
+            "resolutions": this.bpResolutions
+        };
 
 
     }
@@ -208,31 +210,31 @@ class HicFile {
 
 
         const skip = this.version < 9 ? 8 : 12;
-        let data = await this.file.read(this.footerPosition, skip)
+        let data = await this.file.read(this.footerPosition, skip);
         if (!data) {
             return null;
         }
 
-        let binaryParser = new BinaryParser(new DataView(data))
-        const nBytes = this.version < 9 ? binaryParser.getInt() : binaryParser.getLong()  // Total size, master index + expected values
-        let nEntries = binaryParser.getInt()
+        let binaryParser = new BinaryParser(new DataView(data));
+        const nBytes = this.version < 9 ? binaryParser.getInt() : binaryParser.getLong();  // Total size, master index + expected values
+        let nEntries = binaryParser.getInt();
 
         // Estimate the size of the master index. String length of key is unknown, be conservative (100 bytes)
 
         const miSize = nEntries * (100 + 64 + 32);
-        data = await this.file.read(this.footerPosition + skip, Math.min(miSize, nBytes))
+        data = await this.file.read(this.footerPosition + skip, Math.min(miSize, nBytes));
 
         binaryParser = new BinaryParser(new DataView(data));
 
-        this.masterIndex = {}
+        this.masterIndex = {};
         while (nEntries-- > 0) {
-            const key = binaryParser.getString()
-            const pos = binaryParser.getLong()
-            const size = binaryParser.getInt()
-            this.masterIndex[key] = {start: pos, size: size}
+            const key = binaryParser.getString();
+            const pos = binaryParser.getLong();
+            const size = binaryParser.getInt();
+            this.masterIndex[key] = {start: pos, size: size};
         }
 
-        this.expectedValueVectors = {}
+        this.expectedValueVectors = {};
 
         // Expected values
         // const nExpValues = binaryParser.readInt();
@@ -282,7 +284,7 @@ class HicFile {
             }
         }
         // console.log(`Total size  = ${totalSize}`);
-        console.log(`${maxSize}  ${maxKey}  ${this.config.url}`)
+        console.log(`${maxSize}  ${maxKey}  ${this.config.url}`);
     }
 
     async getMatrix(chrIdx1, chrIdx2) {
@@ -298,22 +300,22 @@ class HicFile {
 
     async readMatrix(chrIdx1, chrIdx2) {
 
-        await this.init()
+        await this.init();
 
         if (chrIdx1 > chrIdx2) {
-            const tmp = chrIdx1
-            chrIdx1 = chrIdx2
-            chrIdx2 = tmp
+            const tmp = chrIdx1;
+            chrIdx1 = chrIdx2;
+            chrIdx2 = tmp;
         }
 
-        const key = Matrix.getKey(chrIdx1 , chrIdx2)
-        const idx = this.masterIndex[key]
+        const key = Matrix.getKey(chrIdx1, chrIdx2);
+        const idx = this.masterIndex[key];
         if (!idx) {
-            return undefined
+            return undefined;
         }
-        const data = await this.file.read(idx.start, idx.size)
+        const data = await this.file.read(idx.start, idx.size);
         if (!data) {
-            return undefined
+            return undefined;
         }
 
         return Matrix.parseMatrix(data, this.chromosomes);
@@ -329,21 +331,21 @@ class HicFile {
 
         const transpose = (idx1 > idx2) || (idx1 === idx2 && region1.start >= region2.end);
         if (transpose) {
-            const tmp = region1
+            const tmp = region1;
             region1 = region2;
             region2 = tmp;
         }
 
-        const blocks = await this.getBlocks(region1, region2, units, binsize)
+        const blocks = await this.getBlocks(region1, region2, units, binsize);
         if (!blocks || blocks.length === 0) {
-            return []
+            return [];
         }
 
         const contactRecords = [];
-        const x1 = region1.start / binsize
-        const x2 = region1.end / binsize
-        const y1 = region2.start / binsize
-        const y2 = region2.end / binsize
+        const x1 = region1.start / binsize;
+        const x2 = region1.end / binsize;
+        const y1 = region2.start / binsize;
+        const y2 = region2.end / binsize;
         const nvX1 = Math.floor(x1);
         const nvX2 = Math.ceil(x2);
         const nvY1 = Math.floor(y1);
@@ -392,33 +394,33 @@ class HicFile {
 
     async getBlocks(region1, region2, unit, binSize) {
 
-        const blockKey = (blockNumber, zd) => `${zd.getKey()}_${blockNumber}`
+        const blockKey = (blockNumber, zd) => `${zd.getKey()}_${blockNumber}`;
 
-        await this.init()
-        const chr1 = this.getFileChrName(region1.chr)
-        const chr2 = this.getFileChrName(region2.chr)
-        const idx1 = this.chromosomeIndexMap[chr1]
-        const idx2 = this.chromosomeIndexMap[chr2]
+        await this.init();
+        const chr1 = this.getFileChrName(region1.chr);
+        const chr2 = this.getFileChrName(region2.chr);
+        const idx1 = this.chromosomeIndexMap[chr1];
+        const idx2 = this.chromosomeIndexMap[chr2];
 
         if (idx1 === undefined) {
-            console.log("No chromosome named: " + region1.chr)
-            return []
+            console.log("No chromosome named: " + region1.chr);
+            return [];
         }
         if (idx2 === undefined) {
-            console.log("No chromosome named: " + region2.chr)
-            return []
+            console.log("No chromosome named: " + region2.chr);
+            return [];
         }
 
-        const matrix = await this.getMatrix(idx1, idx2)
+        const matrix = await this.getMatrix(idx1, idx2);
         if (!matrix) {
-            console.log("No matrix for " + region1.chr + "-" + region2.chr)
-            return []
+            console.log("No matrix for " + region1.chr + "-" + region2.chr);
+            return [];
         }
 
         const zd = matrix.getZoomData(binSize, unit);
         if (!zd) {
-            let msg = `No data avalailble for resolution: ${binSize}  for map ${region1.chr}-${region2.chr}`
-            throw new Error(msg)
+            let msg = `No data available for resolution: ${binSize}  for map ${region1.chr}-${region2.chr}`;
+            throw new Error(msg);
         }
 
         const blockNumbers = zd.getBlockNumbers(region1, region2, this.version);
@@ -426,7 +428,7 @@ class HicFile {
         const blocks = [];
         const blockNumbersToQuery = [];
         for (let num of blockNumbers) {
-            const key = blockKey(num, zd)
+            const key = blockKey(num, zd);
             if (this.blockCache.has(binSize, key)) {
                 blocks.push(this.blockCache.get(binSize, key));
             } else {
@@ -449,9 +451,9 @@ class HicFile {
         const idx = await zd.blockIndex.getBlockIndexEntry(blockNumber);
 
         if (!idx) {
-            return undefined
+            return undefined;
         } else {
-            let data = await this.file.read(idx.filePosition, idx.size)
+            let data = await this.file.read(idx.filePosition, idx.size);
             if (!data) {
                 return undefined;
             }
@@ -533,49 +535,49 @@ class HicFile {
     };
 
     async hasNormalizationVector(type, chr, unit, binSize) {
-        await this.init()
-        let chrIdx
+        await this.init();
+        let chrIdx;
         if (Number.isInteger(chr)) {
-            chrIdx = chr
+            chrIdx = chr;
         } else {
-            const canonicalName = this.getFileChrName(chr)
-            chrIdx = this.chromosomeIndexMap[canonicalName]
+            const canonicalName = this.getFileChrName(chr);
+            chrIdx = this.chromosomeIndexMap[canonicalName];
         }
         const key = getNormalizationVectorKey(type, chrIdx, unit.toString(), binSize);
-        const normVectorIndex = await this.getNormVectorIndex()
+        const normVectorIndex = await this.getNormVectorIndex();
         return normVectorIndex && normVectorIndex[key];
     }
 
     async isNormalizationValueAvailableAtResolution(normalization, chr, unit, resolution) {
 
-        let chromosomeIndex
+        let chromosomeIndex;
         if (Number.isInteger(chr)) {
-            chromosomeIndex = chr
+            chromosomeIndex = chr;
         } else {
-            const canonicalName = this.getFileChrName(chr)
-            chromosomeIndex = this.chromosomeIndexMap[canonicalName]
+            const canonicalName = this.getFileChrName(chr);
+            chromosomeIndex = this.chromosomeIndexMap[canonicalName];
         }
 
-        const normVectorIndex = await this.getNormVectorIndex()
+        const normVectorIndex = await this.getNormVectorIndex();
 
-        const key = getNormalizationVectorKey(normalization, chromosomeIndex, unit.toString(), resolution)
+        const key = getNormalizationVectorKey(normalization, chromosomeIndex, unit.toString(), resolution);
 
-        const index = normVectorIndex[key]
+        const index = normVectorIndex[key];
 
-        return undefined !== index
+        return undefined !== index;
 
     }
 
     async getNormalizationVector(type, chr, unit, binSize) {
 
-        await this.init()
+        await this.init();
 
-        let chrIdx
+        let chrIdx;
         if (Number.isInteger(chr)) {
-            chrIdx = chr
+            chrIdx = chr;
         } else {
-            const canonicalName = this.getFileChrName(chr)
-            chrIdx = this.chromosomeIndexMap[canonicalName]
+            const canonicalName = this.getFileChrName(chr);
+            chrIdx = this.chromosomeIndexMap[canonicalName];
         }
 
         const key = getNormalizationVectorKey(type, chrIdx, unit.toString(), binSize);
@@ -584,29 +586,29 @@ class HicFile {
             return this.normVectorCache.get(key);
         }
 
-        const normVectorIndex = await this.getNormVectorIndex()
+        const normVectorIndex = await this.getNormVectorIndex();
 
         if (!normVectorIndex) {
-            console.log("Normalization vectors not present in this file")
-            return undefined
+            console.log("Normalization vectors not present in this file");
+            return undefined;
         }
 
-        const status = await this.isNormalizationValueAvailableAtResolution(type, chr, unit, binSize)
+        const status = await this.isNormalizationValueAvailableAtResolution(type, chr, unit, binSize);
 
         if (false === status) {
 
-            const str = `Normalization option ${ type } not available at resolution ${ binSize }. Will use NONE.`
-            console.log(str)
+            const str = `Normalization option ${type} not available at resolution ${binSize}. Will use NONE.`;
+            console.log(str);
 
             if (this.alert) {
-                this.alert(str)
-            } 
-            return undefined
+                this.alert(str);
+            }
+            return undefined;
         }
 
         const idx = normVectorIndex[key];
 
-        const data = await this.file.read(idx.filePosition, 8)
+        const data = await this.file.read(idx.filePosition, 8);
 
         if (!data) {
             return undefined;
@@ -628,43 +630,50 @@ class HicFile {
             return undefined;
         }
 
-        if (!this.normVectorIndex) {
+        if (this.normVectorIndex) {
+            return this.normVectorIndex;
+        }
 
-            // If nvi is not supplied, try reading from remote lambda service
-            if (!this.config.nvi && this.remote && this.url) {
-                const url = new URL(this.url)
-                const key = encodeURIComponent(url.hostname + url.pathname)
-                if(nvi.hasOwnProperty(key)) {
-                    this.config.nvi = nvi[key]
-                }
+
+        // If we know the position of the norm vector index, read it directly.  This is the case for hic v9 files
+        if (this.normVectorIndexPosition > 0 && this.normVectorIndexSize > 0) {
+            const range = {start: this.normVectorIndexPosition, size: this.normVectorIndexSize};
+            return this.readNormVectorIndex(range);
+        }
+
+        // See if nvi (normVector position and size) is provided in config or can be inferred from url
+        if (!this.config.nvi && this.remote && this.url) {
+            const url = new URL(this.url);
+            const key = encodeURIComponent(url.hostname + url.pathname);
+            if (nvi.hasOwnProperty(key)) {
+                this.config.nvi = nvi[key];
             }
+        }
 
-            if (this.config.nvi) {
-                const nviArray = decodeURIComponent(this.config.nvi).split(",")
-                const range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
-                return this.readNormVectorIndex(range)
-            } else {
-                try {
-                    await this.readNormExpectedValuesAndNormVectorIndex()
-                    return this.normVectorIndex
-                } catch (e) {
-                    if (e.code === "416" || e.code === 416) {
-                        // This is expected if file does not contain norm vectors
-                        this.normExpectedValueVectorsPosition = undefined
-                    } else {
-                        console.error(e)
-                    }
+        if (this.config.nvi) {
+            const nviArray = decodeURIComponent(this.config.nvi).split(",");
+            const range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
+            return this.readNormVectorIndex(range);
+        } else {
+            try {
+                await this.readNormExpectedValuesAndNormVectorIndex();
+                return this.normVectorIndex;
+            } catch (e) {
+                if (e.code === "416" || e.code === 416) {
+                    // This is expected if file does not contain norm vectors
+                    this.normExpectedValueVectorsPosition = undefined;
+                } else {
+                    console.error(e);
                 }
             }
         }
 
-        return this.normVectorIndex
     }
 
     async getNormalizationOptions() {
         // Normalization options are computed as a side effect of loading the index.  A bit
         // ugly but alternatives are worse.
-        await this.getNormVectorIndex()
+        await this.getNormVectorIndex();
         return this.normalizationTypes;
     }
 
@@ -677,11 +686,11 @@ class HicFile {
      */
     async readNormVectorIndex(range) {
 
-        await this.init()
+        await this.init();
 
         this.normalizationVectorIndexRange = range;
 
-        const data = await this.file.read(range.start, range.size)
+        const data = await this.file.read(range.start, range.size);
 
         const binaryParser = new BinaryParser(new DataView(data));
 
@@ -689,7 +698,7 @@ class HicFile {
 
         let nEntries = binaryParser.getInt();
         while (nEntries-- > 0) {
-            this.parseNormVectorEntry(binaryParser)
+            this.parseNormVectorEntry(binaryParser);
         }
 
         return this.normVectorIndex;
@@ -705,13 +714,13 @@ class HicFile {
      */
     async readNormExpectedValuesAndNormVectorIndex() {
 
-        await this.init()
+        await this.init();
 
         if (this.normExpectedValueVectorsPosition === undefined) {
             return;
         }
 
-        const nviStart = await this.skipExpectedValues(this.normExpectedValueVectorsPosition)
+        const nviStart = await this.skipExpectedValues(this.normExpectedValueVectorsPosition);
         let byteCount = INT;
 
         let data = await this.file.read(nviStart, INT);
@@ -722,16 +731,16 @@ class HicFile {
         const binaryParser = new BinaryParser(new DataView(data));
         const nEntries = binaryParser.getInt();
         const sizeEstimate = nEntries * 30;
-        const range = {start: nviStart + byteCount, size: sizeEstimate}
+        const range = {start: nviStart + byteCount, size: sizeEstimate};
 
-        data = await this.file.read(range.start, range.size)
+        data = await this.file.read(range.start, range.size);
         this.normalizedExpectedValueVectors = {};
         this.normVectorIndex = {};
 
         // Recursively process entries
-        await processEntries.call(this, nEntries, data)
+        await processEntries.call(this, nEntries, data);
 
-        this.config.nvi = nviStart.toString() + "," + byteCount
+        this.config.nvi = nviStart.toString() + "," + byteCount;
 
         async function processEntries(nEntries, data) {
 
@@ -745,12 +754,12 @@ class HicFile {
 
                     byteCount += binaryParser.position;
                     const sizeEstimate = Math.max(1000, nEntries * 30);
-                    const range = {start: nviStart + byteCount, size: sizeEstimate}
-                    const data = await this.file.read(range.start, range.size)
+                    const range = {start: nviStart + byteCount, size: sizeEstimate};
+                    const data = await this.file.read(range.start, range.size);
                     return processEntries.call(this, nEntries, data);
                 }
 
-                this.parseNormVectorEntry(binaryParser)
+                this.parseNormVectorEntry(binaryParser);
 
             }
             byteCount += binaryParser.position;
@@ -767,9 +776,9 @@ class HicFile {
     async skipExpectedValues(start) {
 
         const version = this.version;
-        const file = new BufferedFile({file: this.file, size: 256000})
+        const file = new BufferedFile({file: this.file, size: 256000});
         const range = {start: start, size: INT};
-        const data = await file.read(range.start, range.size)
+        const data = await file.read(range.start, range.size);
         const binaryParser = new BinaryParser(new DataView(data));
         const nEntries = binaryParser.getInt();   // Total # of expected value chunks
         if (nEntries === 0) {
@@ -781,11 +790,11 @@ class HicFile {
 
         async function parseNext(start, nEntries) {
 
-            let range = {start: start, size: 500}
-            let chunkSize = 0
+            let range = {start: start, size: 500};
+            let chunkSize = 0;
             let p0 = start;
 
-            let data = await file.read(range.start, range.size)
+            let data = await file.read(range.start, range.size);
             let binaryParser = new BinaryParser(new DataView(data));
             const type = binaryParser.getString(); // type
             const unit = binaryParser.getString(); // unit
@@ -795,7 +804,7 @@ class HicFile {
             chunkSize += binaryParser.position + nValues * (version < 9 ? DOUBLE : FLOAT);
 
             range = {start: start + chunkSize, size: INT};
-            data = await file.read(range.start, range.size)
+            data = await file.read(range.start, range.size);
             binaryParser = new BinaryParser(new DataView(data));
             const nChrScaleFactors = binaryParser.getInt();
             chunkSize += (INT + nChrScaleFactors * (INT + (version < 9 ? DOUBLE : FLOAT)));
@@ -814,7 +823,7 @@ class HicFile {
 
         unit = unit || "BP";
 
-        let resolutionArray
+        let resolutionArray;
         if (unit === "BP") {
             resolutionArray = this.bpResolutions;
         } else if (unit === "FRAG") {
@@ -848,9 +857,9 @@ class HicFile {
 
     getFileChrName(chrAlias) {
         if (this.chrAliasTable.hasOwnProperty(chrAlias)) {
-            return this.chrAliasTable[chrAlias]
+            return this.chrAliasTable[chrAlias];
         } else {
-            return chrAlias
+            return chrAlias;
         }
     }
 
@@ -879,7 +888,7 @@ function getNormalizationVectorKey(type, chrIdx, unit, resolution) {
 }
 
 function isGoogleDrive(url) {
-    return url.indexOf("drive.google.com") >= 0 || url.indexOf("www.googleapis.com/drive") > 0
+    return url.indexOf("drive.google.com") >= 0 || url.indexOf("www.googleapis.com/drive") > 0;
 }
 
 class Block {
@@ -887,7 +896,7 @@ class Block {
         this.blockNumber = blockNumber;
         this.zoomData = zoomData;
         this.records = records;
-        this.idx = idx
+        this.idx = idx;
     }
 }
 

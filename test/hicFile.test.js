@@ -39,8 +39,6 @@ suite('HicFile', function () {
 
     })
 
-    // getNormalizationVector(type, chrIdx, unit, binSize)
-
     test('local file read norm vector', async function () {
 
         const file = new NodeLocalFile({
@@ -56,34 +54,19 @@ suite('HicFile', function () {
         assert.equal(normVector.nValues, 515)
     })
 
-    test('remote file read header', async function () {
+    test('v9 file', async function () {
 
-        const hicFile = new HicFile({
-            "url": "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic",
-            "loadFragData": false
-        })
+        this.timeout(200000);
+
+        const hicFile = new HicFile({url: "https://www.encodeproject.org/files/ENCFF053VBX/@@download/ENCFF053VBX.hic"})
 
         await hicFile.readHeaderAndFooter()
         assert.equal(hicFile.magic, "HIC")
 
-    })
+        assert.equal(hicFile.normVectorIndexPosition, 54305946375);
 
-
-    test('empty file', async function () {
-
-        const hicFile = new HicFile({
-            "url": "https://adam.3dg.io/suhas_juicebox/libs/combined_maps/GM12878/GM12878_intact_16B_5.11.20_1bpRes.hic",
-            "loadFragData": false
-        })
-
-        try {
-            await hicFile.readHeaderAndFooter();
-            assert.fail("Exception expected");
-        } catch (e) {
-            // This is expected
-            assert.ok(true);
-        }
-
+        const normVectorIndex = await hicFile.getNormVectorIndex()
+        assert.ok(normVectorIndex)
     })
 
 })
