@@ -4,7 +4,6 @@
 
 import fs from 'fs'
 import nviTable from '../../src/nvi.js'
-import RemoteFile from "../../src/io/remoteFile.js"
 import HicFile from "../../src/hicFile.js"
 
 const files = ['4dn.txt', 'encode.txt']
