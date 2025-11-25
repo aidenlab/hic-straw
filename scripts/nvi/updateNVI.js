@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-// Read files synchronously and print them line-by-line
+
+
+// Update the nviTable with missing entries from given text files containing hic URLs.
+// For each URL not already in nviTable, fetch its NVI using Straw and print the key-value pair.
+
 import fs from 'fs'
 import nviTable from '../../src/nvi.js'
 import RemoteFile from "../../src/io/remoteFile.js"
