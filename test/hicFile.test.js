@@ -39,8 +39,6 @@ suite('HicFile', function () {
 
     })
 
-    // getNormalizationVector(type, chrIdx, unit, binSize)
-
     test('local file read norm vector', async function () {
 
         const file = new NodeLocalFile({
@@ -54,6 +52,21 @@ suite('HicFile', function () {
         const binSize = 100000
         const normVector = await hicFile.getNormalizationVector(type, chr, unit, binSize)
         assert.equal(normVector.nValues, 515)
+    })
+
+    test('v9 file', async function () {
+
+        this.timeout(200000);
+
+        const hicFile = new HicFile({url: "https://www.encodeproject.org/files/ENCFF053VBX/@@download/ENCFF053VBX.hic"})
+
+        await hicFile.readHeaderAndFooter()
+        assert.equal(hicFile.magic, "HIC")
+
+        assert.equal(hicFile.normVectorIndexPosition, 54305946375);
+
+        const normVectorIndex = await hicFile.getNormVectorIndex()
+        assert.ok(normVectorIndex)
     })
 
 })

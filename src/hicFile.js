@@ -36,6 +36,8 @@ class HicFile {
         this.normalizationTypes = ['NONE'];
         this.matrixCache = new LRU(10);
         this.blockCache = new BlockCache();
+        this.normVectorIndexPosition = -1;
+        this.normVectorIndexSize = -1;
 
         // args may specify an io.File object, a local path (Node only), or a url
         if (args.file) {
@@ -628,37 +630,44 @@ class HicFile {
             return undefined;
         }
 
-        if (!this.normVectorIndex) {
+        if (this.normVectorIndex) {
+            return this.normVectorIndex;
+        }
 
-            // If nvi is not supplied, try reading from table
-            if (!this.config.nvi && this.remote && this.url) {
-                const url = new URL(this.url);
-                const key = encodeURIComponent(url.hostname + url.pathname);
-                if (nvi.hasOwnProperty(key)) {
-                    this.config.nvi = nvi[key];
-                }
+
+        // If we know the position of the norm vector index, read it directly.  This is the case for hic v9 files
+        if (this.normVectorIndexPosition > 0 && this.normVectorIndexSize > 0) {
+            const range = {start: this.normVectorIndexPosition, size: this.normVectorIndexSize};
+            return this.readNormVectorIndex(range);
+        }
+
+        // See if nvi (normVector position and size) is provided in config or can be inferred from url
+        if (!this.config.nvi && this.remote && this.url) {
+            const url = new URL(this.url);
+            const key = encodeURIComponent(url.hostname + url.pathname);
+            if (nvi.hasOwnProperty(key)) {
+                this.config.nvi = nvi[key];
             }
+        }
 
-            if (this.config.nvi) {
-                const nviArray = decodeURIComponent(this.config.nvi).split(",");
-                const range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
-                return this.readNormVectorIndex(range);
-            } else {
-                try {
-                    await this.readNormExpectedValuesAndNormVectorIndex();
-                    return this.normVectorIndex;
-                } catch (e) {
-                    if (e.code === "416" || e.code === 416) {
-                        // This is expected if file does not contain norm vectors
-                        this.normExpectedValueVectorsPosition = undefined;
-                    } else {
-                        console.error(e);
-                    }
+        if (this.config.nvi) {
+            const nviArray = decodeURIComponent(this.config.nvi).split(",");
+            const range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
+            return this.readNormVectorIndex(range);
+        } else {
+            try {
+                await this.readNormExpectedValuesAndNormVectorIndex();
+                return this.normVectorIndex;
+            } catch (e) {
+                if (e.code === "416" || e.code === 416) {
+                    // This is expected if file does not contain norm vectors
+                    this.normExpectedValueVectorsPosition = undefined;
+                } else {
+                    console.error(e);
                 }
             }
         }
 
-        return this.normVectorIndex;
     }
 
     async getNormalizationOptions() {
