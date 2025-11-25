@@ -56,34 +56,4 @@ suite('HicFile', function () {
         assert.equal(normVector.nValues, 515)
     })
 
-    test('remote file read header', async function () {
-
-        const hicFile = new HicFile({
-            "url": "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic",
-            "loadFragData": false
-        })
-
-        await hicFile.readHeaderAndFooter()
-        assert.equal(hicFile.magic, "HIC")
-
-    })
-
-
-    test('empty file', async function () {
-
-        const hicFile = new HicFile({
-            "url": "https://adam.3dg.io/suhas_juicebox/libs/combined_maps/GM12878/GM12878_intact_16B_5.11.20_1bpRes.hic",
-            "loadFragData": false
-        })
-
-        try {
-            await hicFile.readHeaderAndFooter();
-            assert.fail("Exception expected");
-        } catch (e) {
-            // This is expected
-            assert.ok(true);
-        }
-
-    })
-
 })

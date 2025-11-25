@@ -417,7 +417,7 @@ class HicFile {
 
         const zd = matrix.getZoomData(binSize, unit);
         if (!zd) {
-            let msg = `No data avalailble for resolution: ${binSize}  for map ${region1.chr}-${region2.chr}`;
+            let msg = `No data available for resolution: ${binSize}  for map ${region1.chr}-${region2.chr}`;
             throw new Error(msg);
         }
 
