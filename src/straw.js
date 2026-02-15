@@ -4,7 +4,11 @@ class Straw {
 
     constructor(config) {
         this.config = config;
-        this.hicFile = new HicFile(config);
+        if (config.liveContactMap) {
+            this.hicFile = config.liveContactMap;
+        } else {
+            this.hicFile = new HicFile(config);
+        }
     }
 
     async getMetaData() {
