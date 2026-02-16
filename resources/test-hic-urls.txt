@@ -1,0 +1,6 @@
+# .hic file URLs for testing
+# These files are too large to include in the repository.
+# Use them with Straw for integration and visual testing.
+
+# ENCODE IMR-90 Hi-C (hg38), ENCSR968KAY
+https://www.encodeproject.org/files/ENCFF799QGA/@@download/ENCFF799QGA.hic
