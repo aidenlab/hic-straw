@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.HicStraw = factory());
-})(this, (function () { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.HicStraw = {}));
+})(this, (function (exports) { 'use strict';
 
   // from https://github.com/imaya/zlib.js
   var Zlib = {
@@ -7939,7 +7939,11 @@
   class Straw {
     constructor(config) {
       this.config = config;
-      this.hicFile = new HicFile(config);
+      if (config.liveContactMap) {
+        this.hicFile = config.liveContactMap;
+      } else {
+        this.hicFile = new HicFile(config);
+      }
     }
     async getMetaData() {
       return await this.hicFile.getMetaData();
@@ -7968,6 +7972,785 @@
     }
   }
 
-  return Straw;
+  /**
+   * Parser for Spacewalk Text (SWT) format files — ball & stick style.
+   *
+   * SWT format:
+   *   Line 1: ##format=sw1 name=<sample> genome=<genomeId>
+   *   Line 2: chromosome  start  end  x  y  z   (column headers)
+   *   Remaining: blocks of trace data, each beginning with "trace <N>"
+   *              followed by whitespace-delimited data lines:
+   *              chromosome  startBP  endBP  x  y  z
+   */
+
+  /**
+   * Parse SWT text format into structured trace/vertex data.
+   *
+   * @param {string} swtText - Raw SWT file content
+   * @returns {{
+   *   sample: string,
+   *   genomeId: string,
+   *   chr: string,
+   *   genomicStart: number,
+   *   genomicEnd: number,
+   *   binSize: number,
+   *   traceCount: number,
+   *   traceLength: number,
+   *   traces: Array<Array<{x: number, y: number, z: number, isMissingData?: boolean}>>
+   * }}
+   */
+  function parseSWT(swtText) {
+    const lines = swtText.split(/\r?\n/);
+
+    // Parse header line: ##format=sw1 name=IMR90 genome=hg38
+    const headerLine = lines[0];
+    if (!headerLine || !headerLine.startsWith('##format=sw1')) {
+      throw new Error('Invalid SWT format: expected ##format=sw1 header');
+    }
+    const headerTokens = headerLine.split(/\s+/);
+    let sample = undefined;
+    let genomeId = undefined;
+    for (const token of headerTokens) {
+      if (token.startsWith('name=')) {
+        sample = token.substring(5);
+      } else if (token.startsWith('genome=')) {
+        genomeId = token.substring(7);
+      }
+    }
+    if (!sample) throw new Error('SWT header missing name property');
+    if (!genomeId) throw new Error('SWT header missing genome property');
+
+    // Skip line 2 (column headers)
+    // Parse remaining lines into traces
+    const traces = [];
+    let currentTrace = null;
+    let chr = undefined;
+    let genomicStart = undefined;
+    let genomicEnd = undefined;
+    let binSize = undefined;
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.length === 0) continue;
+      const tokens = line.split(/\s+/);
+      if (tokens[0] === 'trace') {
+        // Start a new trace
+        currentTrace = [];
+        traces.push(currentTrace);
+        continue;
+      }
+      if (currentTrace === null) {
+        // Data line before any trace delimiter — skip or error
+        continue;
+      }
+
+      // Data line: chromosome  startBP  endBP  x  y  z
+      if (tokens.length < 6) continue;
+      const lineChr = tokens[0];
+      const startBP = parseInt(tokens[1], 10);
+      const endBP = parseInt(tokens[2], 10);
+      const x = parseFloat(tokens[3]);
+      const y = parseFloat(tokens[4]);
+      const z = parseFloat(tokens[5]);
+
+      // Set chromosome from first data line
+      if (chr === undefined) {
+        chr = lineChr;
+      }
+
+      // Track genomic extent
+      if (genomicStart === undefined || startBP < genomicStart) {
+        genomicStart = startBP;
+      }
+      if (genomicEnd === undefined || endBP > genomicEnd) {
+        genomicEnd = endBP;
+      }
+
+      // Derive bin size from first data line
+      if (binSize === undefined) {
+        binSize = endBP - startBP;
+      }
+
+      // Create vertex
+      const isMissingData = isNaN(x) || isNaN(y) || isNaN(z);
+      const vertex = {
+        x,
+        y,
+        z
+      };
+      if (isMissingData) {
+        vertex.isMissingData = true;
+      }
+      currentTrace.push(vertex);
+    }
+    if (traces.length === 0) {
+      throw new Error('SWT file contains no traces');
+    }
+    const traceLength = traces[0].length;
+    return {
+      sample,
+      genomeId,
+      chr,
+      genomicStart,
+      genomicEnd,
+      binSize,
+      traceCount: traces.length,
+      traceLength,
+      traces
+    };
+  }
+
+  /**
+   * Pairwise Euclidean distance computation for 3D vertex data.
+   *
+   * Produces NxN distance matrices (Float32Array, row-major) from arrays of
+   * {x, y, z} vertices. Supports single-trace and ensemble-averaged computation.
+   */
+
+  const DISTANCE_UNDEFINED = -1;
+
+  /**
+   * Compute ensemble-averaged distance matrix across multiple traces.
+   *
+   * For each cell (i, j), computes the mean Euclidean distance across all traces
+   * that have valid (non-missing) data at both positions i and j.
+   *
+   * @param {Array<Array<{x: number, y: number, z: number, isMissingData?: boolean}>>} traces
+   * @param {number} traceLength - N (number of bins, same for all traces)
+   * @returns {{ distances: Float32Array, maxDistance: number }}
+   */
+  function computeEnsembleDistances(traces, traceLength) {
+    const N = traceLength;
+    const distanceSum = new Float64Array(N * N);
+    const countMatrix = new Uint32Array(N * N);
+    for (const vertices of traces) {
+      for (let i = 0; i < N; i++) {
+        const vi = vertices[i];
+        if (vi.isMissingData) continue;
+        for (let j = i + 1; j < N; j++) {
+          const vj = vertices[j];
+          if (vj.isMissingData) continue;
+          const dx = vi.x - vj.x;
+          const dy = vi.y - vj.y;
+          const dz = vi.z - vj.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          const ij = i * N + j;
+          const ji = j * N + i;
+          distanceSum[ij] += dist;
+          distanceSum[ji] += dist;
+          countMatrix[ij] += 1;
+          countMatrix[ji] += 1;
+        }
+      }
+    }
+
+    // Compute averages
+    const distances = new Float32Array(N * N);
+    distances.fill(DISTANCE_UNDEFINED);
+    let maxDistance = 0;
+    for (let i = 0; i < N; i++) {
+      distances[i * N + i] = 0; // Diagonal
+      for (let j = i + 1; j < N; j++) {
+        const idx = i * N + j;
+        if (countMatrix[idx] > 0) {
+          const avg = distanceSum[idx] / countMatrix[idx];
+          distances[idx] = avg;
+          distances[j * N + i] = avg;
+          if (avg > maxDistance) {
+            maxDistance = avg;
+          }
+        }
+      }
+    }
+    return {
+      distances,
+      maxDistance
+    };
+  }
+
+  /**
+   * Contact record derivation from distance matrices.
+   *
+   * Applies a distance threshold to a pairwise distance matrix to produce
+   * ContactRecord objects suitable for the hic-straw / Juicebox pipeline.
+   * Supports neighbor exclusion to remove trivially proximal diagonal contacts.
+   */
+
+  /**
+   * Derive contact records from an (ensemble-averaged) distance matrix.
+   * Produces binary contacts: counts = 1 for each pair within threshold.
+   *
+   * @param {Float32Array} distances - N×N distance matrix (row-major)
+   * @param {number} traceLength - N
+   * @param {number} distanceThreshold - pairs with distance < threshold are contacts
+   * @param {object} [options]
+   * @param {number} [options.neighborExclusion=0] - skip pairs where |i - j| <= K
+   * @returns {ContactRecord[]} Upper-triangle contact records
+   */
+  function deriveContactRecords(distances, traceLength, distanceThreshold, options = {}) {
+    const neighborExclusion = options.neighborExclusion || 0;
+    const records = [];
+    for (let i = 0; i < traceLength; i++) {
+      for (let j = i + 1; j < traceLength; j++) {
+        // Neighbor exclusion: skip pairs too close along the linear genome
+        if (j - i <= neighborExclusion) continue;
+        const dist = distances[i * traceLength + j];
+        if (dist === DISTANCE_UNDEFINED) continue;
+        if (dist < distanceThreshold) {
+          records.push(new ContactRecord(i, j, 1));
+        }
+      }
+    }
+    return records;
+  }
+
+  /**
+   * Derive contact records using ensemble contact frequency.
+   *
+   * For each bin pair (i, j), checks every trace independently: if the distance
+   * in that trace is below the threshold, it counts as a contact for that trace.
+   * The final counts value is the fraction of traces where the pair is in contact
+   * (a value between 0.0 and 1.0).
+   *
+   * @param {Array<Array<{x: number, y: number, z: number, isMissingData?: boolean}>>} traces
+   * @param {number} traceLength - N
+   * @param {number} distanceThreshold - distance cutoff for contact
+   * @param {object} [options]
+   * @param {number} [options.neighborExclusion=0] - skip pairs where |i - j| <= K
+   * @returns {{ contactRecords: ContactRecord[], contactFrequencies: Float32Array }}
+   */
+  function deriveEnsembleContactFrequencies(traces, traceLength, distanceThreshold, options = {}) {
+    const neighborExclusion = options.neighborExclusion || 0;
+    const N = traceLength;
+
+    // For each pair, count contacts across traces and total valid traces
+    const contactCount = new Uint32Array(N * N);
+    const validCount = new Uint32Array(N * N);
+    for (const vertices of traces) {
+      for (let i = 0; i < N; i++) {
+        const vi = vertices[i];
+        if (vi.isMissingData) continue;
+        for (let j = i + 1; j < N; j++) {
+          if (j - i <= neighborExclusion) continue;
+          const vj = vertices[j];
+          if (vj.isMissingData) continue;
+          const dx = vi.x - vj.x;
+          const dy = vi.y - vj.y;
+          const dz = vi.z - vj.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          const ij = i * N + j;
+          validCount[ij] += 1;
+          if (dist < distanceThreshold) {
+            contactCount[ij] += 1;
+          }
+        }
+      }
+    }
+
+    // Build contact records and frequency matrix
+    const contactFrequencies = new Float32Array(N * N);
+    contactFrequencies.fill(DISTANCE_UNDEFINED);
+    const contactRecords = [];
+    for (let i = 0; i < N; i++) {
+      contactFrequencies[i * N + i] = 0; // Diagonal
+      for (let j = i + 1; j < N; j++) {
+        const ij = i * N + j;
+        if (validCount[ij] > 0) {
+          const freq = contactCount[ij] / validCount[ij];
+          contactFrequencies[ij] = freq;
+          contactFrequencies[j * N + i] = freq;
+          if (freq > 0) {
+            contactRecords.push(new ContactRecord(i, j, freq));
+          }
+        }
+      }
+    }
+    return {
+      contactRecords,
+      contactFrequencies
+    };
+  }
+
+  /**
+   * LiveContactMap — an in-memory adapter that implements the HicFile interface
+   * for synthetic contact maps derived from 3D chromosome vertex data.
+   *
+   * Computes a pairwise distance matrix from 3D vertex positions (single trace
+   * or ensemble-averaged), then derives contact records by applying a distance
+   * threshold. Fully compatible with Straw and Juicebox.js — downstream consumers
+   * cannot distinguish this from a real .hic file.
+   *
+   * Usage:
+   *   const lcm = new LiveContactMap({ swtText, distanceThreshold: 200 })
+   *   await lcm.init()
+   *   const records = await lcm.getContactRecords('NONE', region1, region2, 'BP', 30000)
+   */
+
+  /**
+   * Real chromosome sizes for known genome assemblies.
+   * Used to set correct chromosome size in the HicFile interface —
+   * SWT data only covers a sub-region, but Juicebox widgets (scrollbar,
+   * ruler, clampXY) need the full chromosome size.
+   */
+  const knownChromosomeSizes = {
+    hg38: {
+      chr1: 248956422,
+      chr2: 242193529,
+      chr3: 198295559,
+      chr4: 190214555,
+      chr5: 181538259,
+      chr6: 170805979,
+      chr7: 159345973,
+      chr8: 145138636,
+      chr9: 138394717,
+      chr10: 133797422,
+      chr11: 135086622,
+      chr12: 133275309,
+      chr13: 114364328,
+      chr14: 107043718,
+      chr15: 101991189,
+      chr16: 90338345,
+      chr17: 83257441,
+      chr18: 80373285,
+      chr19: 58617616,
+      chr20: 64444167,
+      chr21: 46709983,
+      chr22: 50818468,
+      chrX: 156040895,
+      chrY: 57227415
+    },
+    hg19: {
+      chr1: 249250621,
+      chr2: 243199373,
+      chr3: 198022430,
+      chr4: 191154276,
+      chr5: 180915260,
+      chr6: 171115067,
+      chr7: 159138663,
+      chr8: 146364022,
+      chr9: 141213431,
+      chr10: 135534747,
+      chr11: 135006516,
+      chr12: 133851895,
+      chr13: 115169878,
+      chr14: 107349540,
+      chr15: 102531392,
+      chr16: 90354753,
+      chr17: 81195210,
+      chr18: 78077248,
+      chr19: 59128983,
+      chr20: 63025520,
+      chr21: 48129895,
+      chr22: 51304566,
+      chrX: 155270560,
+      chrY: 59373566
+    }
+  };
+
+  /**
+   * Lightweight Matrix-like object returned by getMatrix().
+   * Implements the minimal interface that Juicebox's contactMatrixView expects.
+   */
+  class LiveMatrix {
+    constructor(chr1, chr2, zoomData) {
+      this.chr1 = chr1;
+      this.chr2 = chr2;
+      this._zoomData = zoomData;
+    }
+    getZoomData(binSize, unit) {
+      return this._zoomData;
+    }
+    getZoomDataByIndex(index, unit) {
+      return this._zoomData;
+    }
+    findZoomForResolution(binSize, unit) {
+      return 0;
+    }
+  }
+  class LiveContactMap {
+    /**
+     * @param {object} config
+     * @param {string} [config.swtText] - Raw SWT text to parse (option A)
+     * @param {object} [config.parsedData] - Pre-parsed SWT data (option B)
+     * @param {Array} [config.traces] - Raw trace vertex arrays (option C)
+     * @param {Array} [config.chromosomes] - Chromosome array [{index, name, size}]
+     * @param {string} [config.genomeId] - Genome identifier (e.g. "hg38")
+     * @param {string} [config.chr] - Chromosome name (e.g. "chr21")
+     * @param {number} [config.genomicStart] - Start position in bp
+     * @param {number} [config.genomicEnd] - End position in bp
+     * @param {number} [config.binSize] - Bin size in bp
+     * @param {number} [config.traceLength] - Number of bins per trace
+     * @param {number} [config.distanceThreshold=200] - Initial distance threshold
+     * @param {number} [config.neighborExclusion=0] - Neighbor bins to exclude
+     * @param {string} [config.contactMode='frequency'] - 'contact' or 'frequency'
+     * @param {string} [config.name] - Dataset name
+     */
+    constructor(config) {
+      this.config = config;
+      this.initialized = false;
+    }
+
+    // =========================================================================
+    // HicFile interface — methods that Straw and Juicebox call
+    // =========================================================================
+
+    /**
+     * Initialize the adapter. Parses input data, computes distance matrix,
+     * derives contact records. Safe to call multiple times (idempotent).
+     */
+    async init() {
+      if (this.initialized) return;
+      const config = this.config;
+
+      // --- Resolve input data ---
+      let traces, genomeId, chr, genomicStart, genomicEnd, binSize, traceLength;
+      if (config.swtText) {
+        const parsed = parseSWT(config.swtText);
+        traces = parsed.traces;
+        genomeId = config.genomeId || parsed.genomeId;
+        chr = config.chr || parsed.chr;
+        genomicStart = config.genomicStart !== undefined ? config.genomicStart : parsed.genomicStart;
+        genomicEnd = config.genomicEnd !== undefined ? config.genomicEnd : parsed.genomicEnd;
+        binSize = config.binSize || parsed.binSize;
+        traceLength = parsed.traceLength;
+      } else if (config.parsedData) {
+        const pd = config.parsedData;
+        traces = pd.traces;
+        genomeId = config.genomeId || pd.genomeId;
+        chr = config.chr || pd.chr;
+        genomicStart = config.genomicStart !== undefined ? config.genomicStart : pd.genomicStart;
+        genomicEnd = config.genomicEnd !== undefined ? config.genomicEnd : pd.genomicEnd;
+        binSize = config.binSize || pd.binSize;
+        traceLength = pd.traceLength;
+        pd.sample;
+      } else if (config.traces) {
+        traces = config.traces;
+        genomeId = config.genomeId;
+        chr = config.chr;
+        genomicStart = config.genomicStart;
+        genomicEnd = config.genomicEnd;
+        binSize = config.binSize;
+        traceLength = config.traceLength || traces[0].length;
+        config.name;
+      } else {
+        throw new Error('LiveContactMap requires swtText, parsedData, or traces in config');
+      }
+
+      // --- Store core data ---
+      this.traces = traces;
+      this.traceLength = traceLength;
+      this.binSize = binSize;
+      this.genomicStart = genomicStart;
+      this.genomicEnd = genomicEnd;
+      this.distanceThreshold = config.distanceThreshold !== undefined ? config.distanceThreshold : 200;
+      this.neighborExclusion = config.neighborExclusion || 0;
+      this.contactMode = config.contactMode || 'frequency';
+
+      // Bin offset: converts trace-relative indices (0..N-1) to absolute
+      // bin indices that match genomic coordinates (genomicStart/binSize).
+      // In a real .hic file, bin index = genomicPosition / binSize.
+      this.binOffset = Math.floor(genomicStart / binSize);
+
+      // --- Build HicFile-compatible metadata ---
+      this.genomeId = genomeId;
+      this.version = 0; // Synthetic — not a real .hic file version
+
+      // Chromosomes: use provided array or build from SWT data
+      if (config.chromosomes) {
+        this.chromosomes = config.chromosomes;
+      } else {
+        // Look up real chromosome size from known genome assemblies.
+        // SWT data only covers a sub-region, but Juicebox widgets
+        // (scrollbar, ruler, clampXY) need the full chromosome size.
+        let chrSize;
+        const genomeSizes = knownChromosomeSizes[genomeId];
+        if (genomeSizes && genomeSizes[chr]) {
+          chrSize = genomeSizes[chr];
+        } else {
+          chrSize = genomicEnd; // Fallback for unknown genomes
+        }
+        this.chromosomes = [{
+          index: 0,
+          name: 'All',
+          size: chrSize
+        }, {
+          index: 1,
+          name: chr,
+          size: chrSize
+        }];
+      }
+
+      // Resolution: single resolution matching the bin size
+      this.bpResolutions = [binSize];
+      this.fragResolutions = [];
+
+      // Whole genome support (not needed for single-region live maps)
+      this.wholeGenomeChromosome = this.chromosomes.find(c => c.name === 'All') || null;
+      this.wholeGenomeResolution = this.wholeGenomeChromosome ? Math.round(this.wholeGenomeChromosome.size * (1000 / 500)) : null;
+
+      // Normalization: only NONE for live maps
+      this.normalizationTypes = ['NONE'];
+      this.normVectorIndex = {};
+
+      // Chromosome index map and alias table
+      this.chromosomeIndexMap = {};
+      this.chrAliasTable = {};
+      for (const c of this.chromosomes) {
+        this.chromosomeIndexMap[c.name] = c.index;
+        this.chrAliasTable[c.name] = c.name;
+
+        // Add common aliases: "chr21" <-> "21"
+        if (c.name.startsWith('chr')) {
+          const bare = c.name.substring(3);
+          this.chrAliasTable[bare] = c.name;
+        } else if (c.name !== 'All') {
+          this.chrAliasTable['chr' + c.name] = c.name;
+        }
+      }
+
+      // Meta object (returned by getMetaData)
+      this.meta = {
+        version: this.version,
+        genome: this.genomeId,
+        chromosomes: this.chromosomes,
+        resolutions: this.bpResolutions
+      };
+
+      // --- Compute distance matrix ---
+      this._computeDistances();
+
+      // --- Derive contact records ---
+      this._deriveContacts();
+      this.initialized = true;
+    }
+
+    /**
+     * @returns {Promise<{version: number, genome: string, chromosomes: Array, resolutions: Array}>}
+     */
+    async getMetaData() {
+      await this.init();
+      return this.meta;
+    }
+
+    /**
+     * Get contact records for a region pair.
+     *
+     * @param {string} normalization - Normalization type (only "NONE" supported)
+     * @param {{chr: string, start: number, end: number}} region1
+     * @param {{chr: string, start: number, end: number}} region2
+     * @param {string} units - "BP" (only BP supported)
+     * @param {number} binsize - Bin size in base pairs
+     * @returns {Promise<ContactRecord[]>}
+     */
+    async getContactRecords(normalization, region1, region2, units, binsize) {
+      await this.init();
+      const x1 = Math.floor(region1.start / binsize);
+      const x2 = Math.ceil(region1.end / binsize);
+      const y1 = Math.floor(region2.start / binsize);
+      const y2 = Math.ceil(region2.end / binsize);
+      const result = [];
+      for (const rec of this.contactRecords) {
+        // Upper triangle: rec.bin1 < rec.bin2
+        if (rec.bin1 >= x1 && rec.bin1 < x2 && rec.bin2 >= y1 && rec.bin2 < y2) {
+          result.push(rec);
+        }
+        // Lower triangle (symmetric): swap bin1 and bin2
+        if (rec.bin1 !== rec.bin2 && rec.bin2 >= x1 && rec.bin2 < x2 && rec.bin1 >= y1 && rec.bin1 < y2) {
+          result.push(new ContactRecord(rec.bin2, rec.bin1, rec.counts));
+        }
+      }
+      return result;
+    }
+
+    /**
+     * Get matrix for a chromosome pair.
+     * Returns a lightweight Matrix-like object with a single zoom level.
+     *
+     * @param {number} chrIdx1 - Chromosome index
+     * @param {number} chrIdx2 - Chromosome index
+     * @returns {Promise<LiveMatrix|undefined>}
+     */
+    async getMatrix(chrIdx1, chrIdx2) {
+      await this.init();
+      const chr1 = this.chromosomes[chrIdx1];
+      const chr2 = this.chromosomes[chrIdx2];
+      if (!chr1 || !chr2) return undefined;
+
+      // Compute statistics from current contact records
+      let sumCounts = 0;
+      for (const rec of this.contactRecords) {
+        sumCounts += rec.counts;
+      }
+      const nBins = this.traceLength;
+      const averageCount = nBins > 0 ? sumCounts / (nBins * nBins) : 0;
+      const zoomData = {
+        chr1,
+        chr2,
+        zoom: {
+          index: 0,
+          binSize: this.binSize,
+          unit: 'BP'
+        },
+        averageCount,
+        sumCounts,
+        blockBinCount: this.traceLength,
+        blockColumnCount: 1,
+        stdDev: 0,
+        occupiedCellCount: this.contactRecords.length,
+        percent95: 0
+      };
+      return new LiveMatrix(chr1, chr2, zoomData);
+    }
+
+    /**
+     * @returns {Promise<boolean>} Always false — live maps don't support normalization vectors
+     */
+    async hasNormalizationVector(type, chr, unit, binSize) {
+      return false;
+    }
+
+    /**
+     * @returns {Promise<string[]>} Always ['NONE']
+     */
+    async getNormalizationOptions() {
+      return this.normalizationTypes || ['NONE'];
+    }
+
+    /**
+     * Resolve a chromosome alias to the canonical name.
+     * @param {string} chrAlias
+     * @returns {string}
+     */
+    getFileChrName(chrAlias) {
+      if (this.chrAliasTable && this.chrAliasTable.hasOwnProperty(chrAlias)) {
+        return this.chrAliasTable[chrAlias];
+      }
+      return chrAlias;
+    }
+
+    /**
+     * No caches to clear for in-memory data.
+     */
+    clearCaches() {
+      // no-op
+    }
+
+    // =========================================================================
+    // Live-map-specific methods
+    // =========================================================================
+
+    /**
+     * Update the distance threshold and recompute contact records.
+     * Does NOT recompute the distance matrix (that is expensive).
+     *
+     * @param {number} threshold - New distance threshold
+     */
+    setDistanceThreshold(threshold) {
+      this.distanceThreshold = threshold;
+      if (this.initialized) {
+        this._deriveContacts();
+      }
+    }
+
+    /**
+     * Update the neighbor exclusion parameter and recompute contacts.
+     *
+     * @param {number} k - Number of neighbor bins to exclude
+     */
+    setNeighborExclusion(k) {
+      this.neighborExclusion = k;
+      if (this.initialized) {
+        this._deriveContacts();
+      }
+    }
+
+    /**
+     * Replace the vertex data entirely (e.g., new ensemble loaded).
+     * Recomputes everything: distances and contacts.
+     *
+     * @param {Array<Array<{x, y, z, isMissingData?}>>} traces
+     * @param {object} [config] - Optional overrides for genomicStart, genomicEnd, binSize, etc.
+     */
+    updateVertexData(traces, config = {}) {
+      this.traces = traces;
+      if (config.traceLength !== undefined) this.traceLength = config.traceLength;else this.traceLength = traces[0].length;
+      if (config.binSize !== undefined) this.binSize = config.binSize;
+      if (config.genomicStart !== undefined) this.genomicStart = config.genomicStart;
+      if (config.genomicEnd !== undefined) this.genomicEnd = config.genomicEnd;
+      this._computeDistances();
+      this._deriveContacts();
+    }
+
+    /**
+     * Get the raw distance matrix (for distance map visualization).
+     * @returns {{ distances: Float32Array, maxDistance: number, traceLength: number }}
+     */
+    getDistanceMatrix() {
+      return {
+        distances: this.distanceMatrix,
+        maxDistance: this.maxDistance,
+        traceLength: this.traceLength
+      };
+    }
+
+    /**
+     * Get the contact frequencies array (for optional RGBA rendering).
+     * Only available in 'frequency' mode.
+     * @returns {Float32Array|undefined}
+     */
+    getContactFrequencies() {
+      return this.contactFrequencies;
+    }
+
+    // =========================================================================
+    // Internal computation methods
+    // =========================================================================
+
+    /**
+     * Compute the ensemble-averaged distance matrix from trace vertex data.
+     * @private
+     */
+    _computeDistances() {
+      const result = computeEnsembleDistances(this.traces, this.traceLength);
+      this.distanceMatrix = result.distances;
+      this.maxDistance = result.maxDistance;
+    }
+
+    /**
+     * Derive contact records from the distance matrix using the current
+     * threshold and neighbor exclusion settings.
+     * @private
+     */
+    _deriveContacts() {
+      const options = {
+        neighborExclusion: this.neighborExclusion
+      };
+      let rawRecords;
+      if (this.contactMode === 'frequency') {
+        const result = deriveEnsembleContactFrequencies(this.traces, this.traceLength, this.distanceThreshold, options);
+        rawRecords = result.contactRecords;
+        this.contactFrequencies = result.contactFrequencies;
+      } else {
+        // 'contact' mode: binary contacts from averaged distance matrix
+        rawRecords = deriveContactRecords(this.distanceMatrix, this.traceLength, this.distanceThreshold, options);
+        this.contactFrequencies = undefined;
+      }
+
+      // Apply bin offset to convert trace-relative indices (0..N-1) to absolute
+      // bin indices matching genomic coordinates (genomicStart / binSize + i).
+      // This is critical for compatibility with Juicebox, which queries by
+      // genomic position and computes bin indices as position / binSize.
+      const offset = this.binOffset;
+      if (offset === 0) {
+        this.contactRecords = rawRecords;
+      } else {
+        this.contactRecords = rawRecords.map(rec => new ContactRecord(rec.bin1 + offset, rec.bin2 + offset, rec.counts));
+      }
+    }
+  }
+
+  exports.LiveContactMap = LiveContactMap;
+  exports["default"] = Straw;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
