@@ -1,14 +1,13 @@
 import { assert } from 'chai';
+import { describe, it } from 'vitest';
 import RemoteFile from '../src/io/remoteFile.js';
 import ThrottledFile from '../src/io/throttledFile.js';
 import RateLimiter from '../src/io/rateLimiter.js';
 
 
-suite('ThrottledFile', function () {
+describe('ThrottledFile', function () {
 
-    test('test read range', async function () {
-
-        this.timeout(600000);
+    it('test read range', async function () {
 
         const url = "https://s3.amazonaws.com/igv.org.test/data/BufferedReaderTest.bin"
 
@@ -27,6 +26,6 @@ suite('ThrottledFile', function () {
                 assert.equal(expectedValue, value);
             }
         }
-    })
+    }, 600000)
 
 })

@@ -1,16 +1,17 @@
 import { assert } from 'chai';
+import { describe, it } from 'vitest';
 
 import HicFile from '../src/hicFile.js'
 import NodeLocalFile from '../src/io/nodeLocalFile.mjs'
 import Straw from "../src/index.js"
 
-suite('HicFile-2', function () {
+describe('HicFile-2', function () {
 
     const file = new NodeLocalFile({
         "path": "test/data/testFiles/testBp.hic",
     })
 
-    test('read header and footer', async function () {
+    it('read header and footer', async function () {
 
         const hicFile = new HicFile({file: file})
         await hicFile.readHeaderAndFooter()
@@ -19,7 +20,7 @@ suite('HicFile-2', function () {
 
     })
 
-    test('local file contact records', async function () {
+    it('local file contact records', async function () {
 
         const straw = new Straw({file: file})
         const contactRecords = await straw.getContactRecords(
@@ -34,7 +35,7 @@ suite('HicFile-2', function () {
         assert.equal(contactRecords.length, 2500)
     })
 
-    test('local file nvi', async function () {
+    it('local file nvi', async function () {
 
         const hicFile = new HicFile({file: file})
         const matrix = await hicFile.getMatrix(0, 0)

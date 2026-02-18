@@ -1,50 +1,51 @@
 import {assert} from 'chai'
+import { describe, it, beforeAll } from 'vitest';
 import {parseSWT} from '../src/swtParser.js'
 import fs from 'fs'
 
-suite('SWT Parser', function () {
+describe('SWT Parser', function () {
 
     let swtText
     let parsed
 
-    suiteSetup(function () {
+    beforeAll(function () {
         swtText = fs.readFileSync('resources/ball-and-stick.swt', 'utf-8')
         parsed = parseSWT(swtText)
     })
 
-    test('header - sample name', function () {
+    it('header - sample name', function () {
         assert.equal(parsed.sample, 'IMR90')
     })
 
-    test('header - genome ID', function () {
+    it('header - genome ID', function () {
         assert.equal(parsed.genomeId, 'hg38')
     })
 
-    test('chromosome', function () {
+    it('chromosome', function () {
         assert.equal(parsed.chr, 'chr21')
     })
 
-    test('genomic start', function () {
+    it('genomic start', function () {
         assert.equal(parsed.genomicStart, 18000000)
     })
 
-    test('genomic end', function () {
+    it('genomic end', function () {
         assert.equal(parsed.genomicEnd, 19950000)
     })
 
-    test('bin size', function () {
+    it('bin size', function () {
         assert.equal(parsed.binSize, 30000)
     })
 
-    test('trace count', function () {
+    it('trace count', function () {
         assert.equal(parsed.traceCount, 1277)
     })
 
-    test('trace length (bins per trace)', function () {
+    it('trace length (bins per trace)', function () {
         assert.equal(parsed.traceLength, 65)
     })
 
-    test('first vertex of first trace', function () {
+    it('first vertex of first trace', function () {
         const v = parsed.traces[0][0]
         assert.equal(v.x, 117803)
         assert.equal(v.y, 58446)
@@ -52,21 +53,21 @@ suite('SWT Parser', function () {
         assert.isUndefined(v.isMissingData)
     })
 
-    test('second vertex of first trace', function () {
+    it('second vertex of first trace', function () {
         const v = parsed.traces[0][1]
         assert.equal(v.x, 117726)
         assert.equal(v.y, 58747)
         assert.equal(v.z, 1680)
     })
 
-    test('all traces have same length', function () {
+    it('all traces have same length', function () {
         for (let i = 0; i < parsed.traces.length; i++) {
             assert.equal(parsed.traces[i].length, parsed.traceLength,
                 `trace ${i} has ${parsed.traces[i].length} bins, expected ${parsed.traceLength}`)
         }
     })
 
-    test('parse minimal SWT text', function () {
+    it('parse minimal SWT text', function () {
         const text = [
             '##format=sw1 name=Test genome=hg19',
             'chromosome\tstart\tend\tx\ty\tz',
@@ -91,7 +92,7 @@ suite('SWT Parser', function () {
         assert.deepEqual(result.traces[1][1], {x: 41, y: 51, z: 61})
     })
 
-    test('missing data vertex', function () {
+    it('missing data vertex', function () {
         const text = [
             '##format=sw1 name=Test genome=hg19',
             'chromosome\tstart\tend\tx\ty\tz',
@@ -105,7 +106,7 @@ suite('SWT Parser', function () {
         assert.isUndefined(result.traces[0][1].isMissingData)
     })
 
-    test('invalid header throws', function () {
+    it('invalid header throws', function () {
         assert.throws(() => parseSWT('not a valid file'), /Invalid SWT format/)
     })
 })

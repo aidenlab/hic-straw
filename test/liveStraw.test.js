@@ -1,15 +1,14 @@
 import {assert} from 'chai'
+import { describe, it, beforeAll } from 'vitest';
 import Straw from '../src/straw.js'
 import LiveContactMap from '../src/liveContactMap.js'
 import fs from 'fs'
 
-suite('Straw with LiveContactMap', function () {
-
-    this.timeout(10000)
+describe('Straw with LiveContactMap', { timeout: 10000 }, function () {
 
     let straw
 
-    suiteSetup(async function () {
+    beforeAll(async function () {
         const swtText = fs.readFileSync('resources/ball-and-stick.swt', 'utf-8')
         const lcm = new LiveContactMap({
             swtText,
@@ -19,14 +18,14 @@ suite('Straw with LiveContactMap', function () {
         await lcm.init()
 
         straw = new Straw({ liveContactMap: lcm })
-    })
+    }, 10000)
 
-    test('straw.hicFile is the LiveContactMap', function () {
+    it('straw.hicFile is the LiveContactMap', function () {
         assert.ok(straw.hicFile)
         assert.instanceOf(straw.hicFile, LiveContactMap)
     })
 
-    test('getMetaData', async function () {
+    it('getMetaData', async function () {
         const meta = await straw.getMetaData()
         assert.ok(meta)
         assert.equal(meta.genome, 'hg38')
@@ -35,7 +34,7 @@ suite('Straw with LiveContactMap', function () {
         assert.deepEqual(meta.resolutions, [30000])
     })
 
-    test('getContactRecords', async function () {
+    it('getContactRecords', async function () {
         const records = await straw.getContactRecords(
             'NONE',
             {chr: 'chr21', start: 18000000, end: 19950000},
@@ -54,21 +53,21 @@ suite('Straw with LiveContactMap', function () {
         assert.isFunction(rec.getKey)
     })
 
-    test('getNormalizationOptions', async function () {
+    it('getNormalizationOptions', async function () {
         const options = await straw.getNormalizationOptions()
         assert.deepEqual(options, ['NONE'])
     })
 
-    test('getFileChrName resolves aliases', function () {
+    it('getFileChrName resolves aliases', function () {
         assert.equal(straw.getFileChrName('chr21'), 'chr21')
         assert.equal(straw.getFileChrName('21'), 'chr21')
     })
 
-    test('getFileChrName passes through unknown aliases', function () {
+    it('getFileChrName passes through unknown aliases', function () {
         assert.equal(straw.getFileChrName('chrX'), 'chrX')
     })
 
-    test('contact records respond to threshold change', async function () {
+    it('contact records respond to threshold change', async function () {
         const lcm = straw.hicFile
         const region = {chr: 'chr21', start: 18000000, end: 19950000}
 
@@ -89,7 +88,7 @@ suite('Straw with LiveContactMap', function () {
         lcm.setDistanceThreshold(500)
     })
 
-    test('end-to-end: simulates Juicebox HiCDataset usage pattern', async function () {
+    it('end-to-end: simulates Juicebox HiCDataset usage pattern', async function () {
         // This mirrors what HiCDataset.init() does:
         //   this.hicFile = this.straw.hicFile
         //   await this.hicFile.init()

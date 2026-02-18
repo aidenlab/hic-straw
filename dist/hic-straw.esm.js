@@ -872,13 +872,10 @@ n.RawInflateStream.prototype.concatBuffer = function() {
 };
 n.Inflate = function(o, e) {
   var a, i;
-  switch (this.input = o, this.ip = 0, this.rawinflate, this.verify, (e || !(e = {})) && (e.index && (this.ip = e.index), e.verify && (this.verify = e.verify)), a = o[this.ip++], i = o[this.ip++], a & 15) {
-    case n.CompressionMethod.DEFLATE:
-      this.method = n.CompressionMethod.DEFLATE;
-      break;
-    default:
-      throw new Error("unsupported compression method");
-  }
+  if (this.input = o, this.ip = 0, this.rawinflate, this.verify, (e || !(e = {})) && (e.index && (this.ip = e.index), e.verify && (this.verify = e.verify)), a = o[this.ip++], i = o[this.ip++], (a & 15) === n.CompressionMethod.DEFLATE)
+    this.method = n.CompressionMethod.DEFLATE;
+  else
+    throw new Error("unsupported compression method");
   if (((a << 8) + i) % 31 !== 0)
     throw new Error("invalid fcheck flag:" + ((a << 8) + i) % 31);
   if (i & 32)
@@ -912,13 +909,10 @@ n.InflateStream.prototype.readHeader = function() {
   var o = this.ip, e = this.input, a = e[o++], i = e[o++];
   if (a === void 0 || i === void 0)
     return -1;
-  switch (a & 15) {
-    case n.CompressionMethod.DEFLATE:
-      this.method = n.CompressionMethod.DEFLATE;
-      break;
-    default:
-      throw new Error("unsupported compression method");
-  }
+  if ((a & 15) === n.CompressionMethod.DEFLATE)
+    this.method = n.CompressionMethod.DEFLATE;
+  else
+    throw new Error("unsupported compression method");
   if (((a << 8) + i) % 31 !== 0)
     throw new Error("invalid fcheck flag:" + ((a << 8) + i) % 31);
   if (i & 32)
@@ -940,12 +934,8 @@ n.Gunzip.prototype.decodeMember = function() {
   var o = new n.GunzipMember(), e, a, i, t, F, r, c, f, s, h = this.input, d = this.ip;
   if (o.id1 = h[d++], o.id2 = h[d++], o.id1 !== 31 || o.id2 !== 139)
     throw new Error("invalid file signature:" + o.id1 + "," + o.id2);
-  switch (o.cm = h[d++], o.cm) {
-    case 8:
-      break;
-    default:
-      throw new Error("unknown compression method: " + o.cm);
-  }
+  if (o.cm = h[d++], o.cm !== 8)
+    throw new Error("unknown compression method: " + o.cm);
   if (o.flg = h[d++], f = h[d++] | h[d++] << 8 | h[d++] << 16 | h[d++] << 24, o.mtime = new Date(f * 1e3), o.xfl = h[d++], o.os = h[d++], (o.flg & n.Gzip.FlagsMask.FEXTRA) > 0 && (o.xlen = h[d++] | h[d++] << 8, d = this.decodeSubField(d, o.xlen)), (o.flg & n.Gzip.FlagsMask.FNAME) > 0) {
     for (c = [], r = 0; (F = h[d++]) > 0; )
       c[r++] = String.fromCharCode(F);
@@ -1940,13 +1930,10 @@ n.Deflate.compress = function(o, e) {
 };
 n.Deflate.prototype.compress = function() {
   var o, e, a, i, t, F, r, c, f, s = 0;
-  switch (f = this.output, o = n.CompressionMethod.DEFLATE, o) {
-    case n.CompressionMethod.DEFLATE:
-      e = Math.LOG2E * Math.log(n.RawDeflate.WindowSize) - 8;
-      break;
-    default:
-      throw new Error("invalid compression method");
-  }
+  if (f = this.output, o = n.CompressionMethod.DEFLATE, o === n.CompressionMethod.DEFLATE)
+    e = Math.LOG2E * Math.log(n.RawDeflate.WindowSize) - 8;
+  else
+    throw new Error("invalid compression method");
   switch (a = e << 4 | o, f[s++] = a, F = 0, o) {
     case n.CompressionMethod.DEFLATE:
       switch (this.compressionType) {

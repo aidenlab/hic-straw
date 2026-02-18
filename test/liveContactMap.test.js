@@ -1,17 +1,15 @@
 import {assert} from 'chai'
+import { describe, it, beforeAll } from 'vitest';
 import LiveContactMap from '../src/liveContactMap.js'
 import fs from 'fs'
 
-suite('LiveContactMap', function () {
+describe('LiveContactMap', { timeout: 10000 }, function () {
 
-    // Increase timeout for tests that parse the full SWT file
-    this.timeout(10000)
-
-    suite('construction from SWT text', function () {
+    describe('construction from SWT text', function () {
 
         let lcm
 
-        suiteSetup(async function () {
+        beforeAll(async function () {
             const swtText = fs.readFileSync('resources/ball-and-stick.swt', 'utf-8')
             lcm = new LiveContactMap({
                 swtText,
@@ -21,11 +19,11 @@ suite('LiveContactMap', function () {
             await lcm.init()
         })
 
-        test('genomeId', function () {
+        it('genomeId', function () {
             assert.equal(lcm.genomeId, 'hg38')
         })
 
-        test('chromosomes array', function () {
+        it('chromosomes array', function () {
             assert.isArray(lcm.chromosomes)
             assert.isAtLeast(lcm.chromosomes.length, 2)
             const chr21 = lcm.chromosomes.find(c => c.name === 'chr21')
@@ -34,47 +32,47 @@ suite('LiveContactMap', function () {
             assert.isNumber(chr21.index)
         })
 
-        test('bpResolutions', function () {
+        it('bpResolutions', function () {
             assert.deepEqual(lcm.bpResolutions, [30000])
         })
 
-        test('normalizationTypes', function () {
+        it('normalizationTypes', function () {
             assert.deepEqual(lcm.normalizationTypes, ['NONE'])
         })
 
-        test('chrAliasTable resolves aliases', function () {
+        it('chrAliasTable resolves aliases', function () {
             assert.equal(lcm.getFileChrName('chr21'), 'chr21')
             assert.equal(lcm.getFileChrName('21'), 'chr21')
         })
 
-        test('meta object', function () {
+        it('meta object', function () {
             assert.equal(lcm.meta.genome, 'hg38')
             assert.isArray(lcm.meta.chromosomes)
             assert.deepEqual(lcm.meta.resolutions, [30000])
         })
 
-        test('distance matrix computed', function () {
+        it('distance matrix computed', function () {
             assert.ok(lcm.distanceMatrix)
             assert.instanceOf(lcm.distanceMatrix, Float32Array)
             assert.equal(lcm.distanceMatrix.length, 65 * 65)
             assert.isAbove(lcm.maxDistance, 0)
         })
 
-        test('contact records generated', function () {
+        it('contact records generated', function () {
             assert.isArray(lcm.contactRecords)
             assert.isAbove(lcm.contactRecords.length, 0)
         })
 
-        test('init is idempotent', async function () {
+        it('init is idempotent', async function () {
             const countBefore = lcm.contactRecords.length
             await lcm.init()
             assert.equal(lcm.contactRecords.length, countBefore)
         })
     })
 
-    suite('construction from raw traces', function () {
+    describe('construction from raw traces', function () {
 
-        test('construct with traces and config', async function () {
+        it('construct with traces and config', async function () {
             const traces = [
                 [{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}, {x: 0, y: 4, z: 0}, {x: 100, y: 0, z: 0}],
                 [{x: 1, y: 1, z: 1}, {x: 4, y: 1, z: 1}, {x: 1, y: 5, z: 1}, {x: 101, y: 1, z: 1}]
@@ -98,9 +96,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('getMetaData', function () {
+    describe('getMetaData', function () {
 
-        test('returns correct structure', async function () {
+        it('returns correct structure', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38',
@@ -119,11 +117,11 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('getContactRecords', function () {
+    describe('getContactRecords', function () {
 
         let lcm
 
-        suiteSetup(async function () {
+        beforeAll(async function () {
             // 4 bins, 30kb each: [0-30000, 30000-60000, 60000-90000, 90000-120000]
             // Vertices: (0,0,0), (3,0,0), (0,4,0), (100,0,0)
             // d(0,1)=3, d(0,2)=4, d(1,2)=5, d(0,3)=100, d(1,3)=97, d(2,3)≈100
@@ -144,7 +142,7 @@ suite('LiveContactMap', function () {
             await lcm.init()
         })
 
-        test('full range query returns all contacts', async function () {
+        it('full range query returns all contacts', async function () {
             const records = await lcm.getContactRecords(
                 'NONE',
                 {chr: 'chr1', start: 0, end: 120000},
@@ -159,7 +157,7 @@ suite('LiveContactMap', function () {
             assert.equal(records.length, 6)
         })
 
-        test('partial region query filters correctly', async function () {
+        it('partial region query filters correctly', async function () {
             // Query only bin 0 × bin 0..1 → should find (0,1) contact
             const records = await lcm.getContactRecords(
                 'NONE',
@@ -178,7 +176,7 @@ suite('LiveContactMap', function () {
             assert.equal(records[0].bin2, 1)
         })
 
-        test('out-of-range query returns empty', async function () {
+        it('out-of-range query returns empty', async function () {
             const records = await lcm.getContactRecords(
                 'NONE',
                 {chr: 'chr1', start: 500000, end: 600000},
@@ -189,7 +187,7 @@ suite('LiveContactMap', function () {
             assert.equal(records.length, 0)
         })
 
-        test('contact records have correct structure', async function () {
+        it('contact records have correct structure', async function () {
             const records = await lcm.getContactRecords(
                 'NONE',
                 {chr: 'chr1', start: 0, end: 120000},
@@ -206,9 +204,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('getMatrix', function () {
+    describe('getMatrix', function () {
 
-        test('returns matrix-like object', async function () {
+        it('returns matrix-like object', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38',
@@ -232,7 +230,7 @@ suite('LiveContactMap', function () {
             assert.ok(zd.chr2)
         })
 
-        test('returns undefined for invalid chromosome', async function () {
+        it('returns undefined for invalid chromosome', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38',
@@ -249,9 +247,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('hasNormalizationVector', function () {
+    describe('hasNormalizationVector', function () {
 
-        test('always returns false', async function () {
+        it('always returns false', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38', chr: 'chr1',
@@ -265,9 +263,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('getNormalizationOptions', function () {
+    describe('getNormalizationOptions', function () {
 
-        test('returns NONE only', async function () {
+        it('returns NONE only', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38', chr: 'chr1',
@@ -281,9 +279,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('setDistanceThreshold', function () {
+    describe('setDistanceThreshold', function () {
 
-        test('changing threshold changes contact count', async function () {
+        it('changing threshold changes contact count', async function () {
             const traces = [
                 [{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}, {x: 0, y: 4, z: 0}, {x: 100, y: 0, z: 0}]
             ]
@@ -310,7 +308,7 @@ suite('LiveContactMap', function () {
             assert.equal(lcm.contactRecords.length, 0)
         })
 
-        test('does not recompute distance matrix', async function () {
+        it('does not recompute distance matrix', async function () {
             const traces = [
                 [{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]
             ]
@@ -330,9 +328,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('setNeighborExclusion', function () {
+    describe('setNeighborExclusion', function () {
 
-        test('increasing K reduces contacts', async function () {
+        it('increasing K reduces contacts', async function () {
             const traces = [
                 [{x: 0, y: 0, z: 0}, {x: 1, y: 0, z: 0}, {x: 2, y: 0, z: 0}, {x: 3, y: 0, z: 0}]
             ]
@@ -355,9 +353,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('getDistanceMatrix', function () {
+    describe('getDistanceMatrix', function () {
 
-        test('returns distance data', async function () {
+        it('returns distance data', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38', chr: 'chr1',
@@ -374,9 +372,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('frequency mode', function () {
+    describe('frequency mode', function () {
 
-        test('contact frequencies between 0 and 1', async function () {
+        it('contact frequencies between 0 and 1', async function () {
             const traces = [
                 [{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}],
                 [{x: 0, y: 0, z: 0}, {x: 5, y: 0, z: 0}]
@@ -397,7 +395,7 @@ suite('LiveContactMap', function () {
             assert.closeTo(lcm.contactRecords[0].counts, 0.5, 0.001)
         })
 
-        test('getContactFrequencies returns matrix', async function () {
+        it('getContactFrequencies returns matrix', async function () {
             const traces = [
                 [{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]
             ]
@@ -417,9 +415,9 @@ suite('LiveContactMap', function () {
         })
     })
 
-    suite('updateVertexData', function () {
+    describe('updateVertexData', function () {
 
-        test('replaces data and recomputes', async function () {
+        it('replaces data and recomputes', async function () {
             const lcm = new LiveContactMap({
                 traces: [[{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}]],
                 genomeId: 'hg38', chr: 'chr1',
