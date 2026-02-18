@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Straw example</title>
-
-    <script src="../dist/hic-straw.js"></script>
-
     <style>
         tr:nth-child(even) {
             background-color: #f2f2f2;
@@ -21,41 +18,36 @@
 <table id="resultsTable" width="800px">
     <caption>Contact Records</caption>
     <thead>
-        <th>bin X</th><th>binY</th><th>value</th>
+        <th>bin X</th>
+        <th>binY</th>
+        <th>value</th>
     </thead>
 </table>
 
-<script type="text/javascript">
+<script type="module">
+    import Straw from "../src/index.js"
 
-    document.addEventListener("DOMContentLoaded", function () {
-
-       const table = document.getElementById("resultsTable")
-
-        const straw = new HicStraw({
-            "url": "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic"
-        })
-
-        straw.getContactRecords(
-            "KR",
-            {chr: "8",start: 50000000, end: 60000000},
-            {chr: "8",start: 50000000, end: 60000000},
-            "BP",
-            1000000
-        )
-            .then(function (contactRecords) {
-                for(let record of contactRecords) {
-                    var newRow = table.insertRow(-1)
-                    newRow.insertCell(0).appendChild(document.createTextNode(record.bin1.toString()))
-                    newRow.insertCell(1).appendChild(document.createTextNode(record.bin2.toString()))
-                    newRow.insertCell(2).appendChild(document.createTextNode(record.counts.toString()))
-                }
-
-            })
-
+    const table = document.getElementById("resultsTable")
+    const straw = new Straw({
+        url: "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic"
     })
 
+    straw.getContactRecords(
+        "KR",
+        { chr: "8", start: 50000000, end: 60000000 },
+        { chr: "8", start: 50000000, end: 60000000 },
+        "BP",
+        1000000
+    )
+        .then(function (contactRecords) {
+            for (let record of contactRecords) {
+                const newRow = table.insertRow(-1)
+                newRow.insertCell(0).appendChild(document.createTextNode(record.bin1.toString()))
+                newRow.insertCell(1).appendChild(document.createTextNode(record.bin2.toString()))
+                newRow.insertCell(2).appendChild(document.createTextNode(record.counts.toString()))
+            }
+        })
 </script>
-
 
 </body>
 </html>

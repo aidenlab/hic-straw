@@ -1,6 +1,6 @@
 # 3D Structure to Contact Map: Strategy Discussion
 
-## Date: 2026-02-14
+## Date: 2026-02-14 | Last updated: 2026-02-18
 
 ## Background
 
@@ -31,11 +31,18 @@ A data structure that is indistinguishable from a `.hic` contact matrix from str
 
 For every pair of vertices (i, j), compute the Euclidean distance. Convert distance into a contact-like score — spatially close regions receive high counts, distant regions receive low counts. This mirrors the inverse relationship observed in real Hi-C data where contact frequency falls off with spatial distance.
 
-The distance-to-contact conversion function is TBD. Candidates include:
-- Inverse power law: `counts = 1 / distance^alpha`
-- Gaussian: `counts = exp(-distance^2 / (2 * sigma^2))`
-- Simple distance threshold: `counts = 1 if distance < cutoff, else 0`
-- Empirically calibrated function matching known Hi-C distance decay curves
+### Implemented approach
+
+The implementation uses a **distance threshold** with two configurable modes:
+
+- **Contact mode** (`contactMode: 'contact'`): Binary contacts from the ensemble-averaged distance matrix. `counts = 1` if average distance < threshold, else 0.
+- **Frequency mode** (`contactMode: 'frequency'`, default): For each pair, the fraction of traces where distance < threshold. `counts` ranges from 0.0 to 1.0, reflecting ensemble contact probability.
+
+The threshold is configurable via `distanceThreshold` (default 200) and can be updated dynamically with `setDistanceThreshold()` without recomputing the expensive distance matrix.
+
+**Neighbor exclusion** is supported to suppress the trivially bright diagonal (sequential bins are always spatially close). Pairs where `|i - j| <= neighborExclusion` are skipped. See [neighbor-exclusion.md](./neighbor-exclusion.md).
+
+*Other candidates considered but not implemented:* inverse power law, Gaussian, empirically calibrated decay curves.
 
 ## Proposed Strategy
 
@@ -44,7 +51,7 @@ Compute the distance-based contact matrix from 3D coordinates and write it out a
 - **Pro:** No changes to straw needed
 - **Con:** Requires implementing a `.hic` file writer; not "live"
 
-### Option 2: In-memory adapter (recommended)
+### Option 2: In-memory adapter (recommended) ✓ Implemented
 Create a data source that conforms to the same interface straw expects (the shape of `HicFile`) but computes contact records on the fly from 3D coordinates. No file I/O needed.
 - **Pro:** Live computation; no intermediate file; can update dynamically as the 3D model changes
 - **Con:** Requires understanding which parts of the HicFile interface downstream consumers depend on
@@ -52,24 +59,46 @@ Create a data source that conforms to the same interface straw expects (the shap
 ### Option 3: Hybrid
 Implement a lightweight in-memory structure that mimics only the parts of the `.hic` format that straw actually consumes, without writing to disk.
 
-### Recommended approach: Option 2
+### Chosen approach: Option 2, Option A
 
-The in-memory adapter approach best fits the "live" requirement. The key design question is at what level to intercept:
+The in-memory adapter approach was implemented. **Option A (Replace HicFile)** was chosen: `LiveContactMap` implements the same public methods as `HicFile`. Straw accepts either via `config.liveContactMap` or `config.url`/`config.file`.
 
-**A. Replace HicFile** — Create an alternative class (e.g., `LiveContactMap`) that implements the same public methods as `HicFile` but generates contact records from 3D vertex positions instead of reading from a file. Straw would accept either a `HicFile` or a `LiveContactMap`.
+## Implementation Status
 
-**B. Replace the I/O layer** — Keep `HicFile` but substitute the file reader with a synthetic data provider that generates binary data matching the `.hic` format from 3D coordinates. This is more complex and less clean.
+The following components have been implemented and tested:
 
-Option A is simpler and more maintainable.
+| Component | Status | Location |
+|-----------|--------|----------|
+| **LiveContactMap** | ✓ | `src/liveContactMap.js` |
+| **SWT parser** | ✓ | `src/swtParser.js` |
+| **Distance matrix** | ✓ | `src/distanceMatrix.js` (single trace + ensemble) |
+| **Contact derivation** | ✓ | `src/contactDerivation.js` |
+| **Straw integration** | ✓ | `src/straw.js` — `config.liveContactMap` |
+| **Juicebox compatibility** | ✓ | Tested in `test/liveStraw.test.js` |
+| **Visual test page** | ✓ | `examples/live-contact-map.html` |
+
+### Resolved design decisions
+
+1. **Distance-to-contact:** Distance threshold with configurable cutoff. Two modes: binary (contact) or ensemble frequency (0–1).
+2. **Resolution:** Single resolution derived from SWT bin size (typically 30 kb).
+3. **Normalization:** NONE only — sufficient for synthetic maps.
+4. **Downstream consumers:** Juicebox.js via `HiCDataset` → `Straw` → `LiveContactMap`. Same interface as HicFile.
+5. **Dynamic updates:** Yes. `setDistanceThreshold()` and `setNeighborExclusion()` update contacts without recomputing distances. `updateVertexData()` replaces entire data.
+6. **Scale:** O(N²) pairwise computation. Tested with `ball-and-stick.swt` (65 bins × 1277 traces). No spatial indexing yet.
+
+### Additional features beyond original scope
+
+- **Known chromosome sizes** — hg38/hg19 lookup for correct Juicebox scrollbar/widget positioning (SWT data covers sub-regions).
+- **Bin offset** — Converts trace-relative indices (0..N-1) to absolute genomic bin indices for Juicebox compatibility.
+- **getDistanceMatrix()** — Exposes raw distance matrix for distance map visualization.
+- **getContactFrequencies()** — Float32Array for optional RGBA rendering in frequency mode.
+- **Missing data handling** — SWT parser marks `isMissingData` for vertices with NaN coordinates; excluded from distance/contact computation.
 
 ## Open Questions
 
-1. **Distance-to-contact function:** What conversion function should map 3D distance to contact frequency? Should it be configurable?
-2. **Resolution:** The 3D model has a fixed vertex spacing. How does this map to Hi-C bin resolutions? Is there a single natural resolution, or do we need multi-resolution support?
-3. **Normalization:** Should the synthetic contact map support normalization types (VC, KR, etc.), or is NONE sufficient?
-4. **Downstream consumers:** What code consumes straw's output? This determines which parts of the HicFile interface must be implemented.
-5. **Dynamic updates:** If the 3D model changes (e.g., during a simulation or interactive manipulation), should the contact map update in real time?
-6. **Scale:** How many vertices are typical? This affects whether pairwise distance computation is feasible on the fly or needs optimization (spatial indexing, caching, etc.).
+1. **Alternative distance-to-contact functions:** Inverse power law, Gaussian, or O/E-style normalization could be added as optional modes if needed.
+2. **Multi-resolution:** Downsampling to coarser resolutions (e.g., 2×, 4× bin size) is not implemented; single resolution only.
+3. **Scale optimization:** For very large traces (e.g., full chromosome), spatial indexing or caching could reduce computation cost.
 
 ## Input Data: SWT File Format (Ball & Stick)
 
@@ -99,7 +128,7 @@ chr21 18000000 18030000 ...
 
 ### Implications for the adapter
 - The natural resolution is **30kb** (the bin size in the SWT file)
-- Each trace is an independent 3D structure — we can compute a contact map per trace, or aggregate across traces
+- Each trace is an independent 3D structure — we compute an **ensemble-averaged** distance matrix and derive contacts from it (contact mode) or compute contact frequency per pair across traces (frequency mode)
 - The chromosome and genomic coordinates map directly to what straw expects for chromosome definitions and bin indexing
 - The sample file (`ball-and-stick.swt`) contains data for **chr21**, genome **hg38**, from the **IMR90** cell line
 
@@ -107,9 +136,8 @@ chr21 18000000 18030000 ...
 - `resources/ball-and-stick.swt` — sample ball & stick SWT file (3.4MB, multiple traces)
 - `resources/spacewalk-swt-text-file-format.md` — SWT format specification
 
-## Next Steps
+## Related Documents
 
-- Decide on the distance-to-contact conversion function
-- Identify the minimal HicFile interface needed by downstream consumers
-- Prototype a `LiveContactMap` class that reads SWT data and produces contact records
-- Test with Juicebox or other visualization tools
+- [hic-straw Usage Scenarios](./hic-straw-usage-scenarios.md) — detailed integration guide, Juicebox scenarios, architecture
+- [Neighbor Exclusion](./neighbor-exclusion.md) — diagonal suppression design (implemented as approach 1)
+- [README](../README.md) — LiveContactMap API and usage examples

@@ -1,6 +1,8 @@
-To run the examples you must first build the distribution.   From the root directory
+To run the examples, from the root directory:
 
 ```
 npm install
-npm run build
+npm run dev
 ```
+
+Then open http://localhost:5173 in your browser. The dashboard links to each example.

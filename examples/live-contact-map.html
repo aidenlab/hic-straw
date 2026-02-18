@@ -7,6 +7,10 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --map-size: 768;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             background: #1a1a2e;
@@ -219,8 +223,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 800px;
-            height: 800px;
+            width: calc(var(--map-size) * 1px);
+            height: calc(var(--map-size) * 1px);
             background: #0a0a1a;
             border: 1px dashed #333;
             border-radius: 4px;
@@ -395,7 +399,10 @@
     const distanceTiming = document.getElementById('distance-timing')
 
     // --- Constants ---
-    const MAP_SIZE = 800
+    const MAP_SIZE = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--map-size').trim(),
+        10
+    ) || 800
 
     // --- State ---
     let lcm = null            // LiveContactMap instance

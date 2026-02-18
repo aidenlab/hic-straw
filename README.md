@@ -1,12 +1,12 @@
 # hic-straw
 
-[![Build Status](https://travis-ci.com/igvteam/hic-straw.svg?branch=master)](https://travis-ci.com/igvteam/hic-straw)
+[![CI](https://github.com/igvteam/hic-straw/actions/workflows/ci.yml/badge.svg)](https://github.com/igvteam/hic-straw/actions/workflows/ci.yml)
 
 Command line and web utilities for reading .hic contact matrix files
 
 ## Installation
 
-Requires Node (https://nodejs.org)
+Requires Node 18+ (https://nodejs.org)
 
 ```
 npm install hic-straw
@@ -28,84 +28,60 @@ Arguments
 
 ## Examples
 
+### Development
+
+Run the examples dashboard with hot reload:
+
+```bash
+npm run dev
+```
+
+Then open http://localhost:5173 in your browser. The dashboard links to each example.
 
 ### Browser usage
 
-Script tag - see examples/straw.html
+ES module — see examples/straw.html
 
-```html
+```javascript
+import Straw from 'hic-straw'
 
-<script src="../dist/hic-straw.js"></script>
+const straw = new Straw({
+    url: "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic"
+})
 
-...
-
- const straw = new HicStraw({
-            url: "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic"
-        })
-
-        straw.getContactRecords(
-            "KR",
-            {chr: "8",start: 50000000, end: 60000000},
-            {chr: "8",start: 50000000, end: 60000000},
-            "BP",
-            1000000
-        )
-            .then(function (contactRecords) {...})
-
-```
-
-
-ES6 module - see examples/straw-es6.html
-
-```js
-
-
-    import HicStraw from '../dist/hic-straw_es6.js'
-
-    const straw = new HicStraw({
-        url: "https://s3.amazonaws.com/igv.broadinstitute.org/data/hic/intra_nofrag_30.hic"
-    })
-
-    straw.getContactRecords(
-        "KR",
-        {chr: "8",start: 50000000, end: 60000000},
-        {chr: "8",start: 50000000, end: 60000000},
-        "BP",
-        1000000
-     )
-        .then(function (contactRecords) {...})
-
-
-
+straw.getContactRecords(
+    "KR",
+    { chr: "8", start: 50000000, end: 60000000 },
+    { chr: "8", start: 50000000, end: 60000000 },
+    "BP",
+    1000000
+)
+    .then(function (contactRecords) { ... })
 ```
 
 ### Node
 
-The hic-straw distributions are built for browser usage, but can be used in Node with shims.
-
 **local file**
 
-To use hic-straw with a local file use the NodeLocalFile class as follows
+To use hic-straw with a local file, use the NodeLocalFile class:
 
-```
-import NodeLocalFile from "src/io/nodeLocalFile.mjs"
-const path = "test/data/test_chr22.hic"
-const nodeLocalFile = new NodeLocalFile({path})
-const straw = new Straw({file: nodeLocalFile})
+```javascript
+import Straw from 'hic-straw'
+import NodeLocalFile from 'hic-straw/node'
+
+const nodeLocalFile = new NodeLocalFile({ path: "test/data/test_chr22.hic" })
+const straw = new Straw({ file: nodeLocalFile })
 ```
 
 **remote file**
 
-For remote file access define a global `fetch` function
+Node 18+ includes native `fetch`. For remote files:
 
 ```javascript
-global.fetch = require("node-fetch")
-const url = "https://foo.bar/test.hic"
-const straw = new Straw({url: url})
+import Straw from 'hic-straw'
+
+const straw = new Straw({ url: "https://foo.bar/test.hic" })
 ```
-
-
-See ```examples/script-es6.js``` and ```examples/script-cjs.js```  for complete examples.
 
 
 ### Command line
@@ -327,12 +303,5 @@ A browser-based test page is provided at `examples/live-contact-map.html`. It re
 both a contact map and a distance map side by side from any `.swt` file, with interactive
 controls for threshold and neighbor exclusion.
 
-To use it, serve the project directory over HTTP (required for ES module imports):
-
-```bash
-cd /path/to/hic-straw
-npx http-server -p 8080
-```
-
-Then open `http://localhost:8080/examples/live-contact-map.html` in your browser
-and load an SWT file using the file picker.
+Run `npm run dev` and open the examples dashboard, then click "LiveContactMap" — or navigate
+directly to http://localhost:5173/examples/live-contact-map.html. Load an SWT file using the file picker.

@@ -36,7 +36,7 @@ Compute all pairwise distances (including neighbors), then divide by the expecte
 
 ## Status
 
-**Open — awaiting decision.** This is a design choice that affects the core computation. It should be resolved before prototyping the LiveContactMap class.
+**Implemented.** Approach 1 (skip a fixed number of neighbors) was chosen and implemented in `LiveContactMap` and `contactDerivation.js`. The `neighborExclusion` parameter (default 0) skips pairs where `|i - j| <= k`. It can be updated dynamically via `setNeighborExclusion(k)` without recomputing the distance matrix.
 
 ## Related
 
