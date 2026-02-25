@@ -66,6 +66,10 @@ Both `HicFile` and `LiveContactMap` implement the same interface. This is the co
 | `hasNormalizationVector(...)` | Checks normalization vector index | Always returns `false` |
 | `getNormalizationOptions()` | Returns available types (NONE, VC, VC_SQRT, KR) | Always returns `['NONE']` |
 | `getFileChrName(alias)` | Resolves via chrAliasTable from file header | Resolves via locally built alias table |
+| `clearCaches()` | Clears LRU caches for matrices, blocks, norm vectors | No-op (all data is in memory) |
+| `updateVertexData(traces, config)` | N/A | Replaces vertex data, recomputes distances and contacts |
+
+`Straw` also exposes `getNVI()` (normalization vector index string) and `printIndexStats()` — these delegate to `HicFile` only and are not part of the LiveContactMap interface.
 
 ### The Straw Router
 
@@ -129,7 +133,7 @@ sequenceDiagram
 **Node.js (local file):**
 ```javascript
 import Straw from 'hic-straw'
-import NodeLocalFile from 'hic-straw/src/io/nodeLocalFile.mjs'
+import NodeLocalFile from 'hic-straw/node'
 
 const straw = new Straw({ file: new NodeLocalFile({ path: 'data.hic' }) })
 const meta = await straw.getMetaData()
@@ -704,6 +708,10 @@ Binary format with header, compressed contact blocks, and normalization vectors.
 | `io/bufferedFile.js` | Read-ahead buffering wrapper |
 | `io/browserLocalFile.js` | Browser Blob/File access |
 | `io/nodeLocalFile.mjs` | Node.js file system access |
+| `io/throttledFile.js` | Rate-limited file wrapper (for Google Drive etc.) |
+| `io/rateLimiter.js` | Token-bucket rate limiter used by ThrottledFile |
+| `nvi.js` | Hardcoded NVI lookup table for legacy hosted `.hic` files (speeds up init) |
+| `polygons.js` | Polygon intersection geometry (Separating Axis Theorem) |
 
 ### Juicebox.js Integration Points (`js/`)
 
