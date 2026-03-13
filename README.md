@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/igvteam/hic-straw/actions/workflows/ci.yml/badge.svg)](https://github.com/igvteam/hic-straw/actions/workflows/ci.yml)
 
-Command line and web utilities for reading .hic contact matrix files
+Command line and web utilities for reading .hic contact matrix files, with support for creating
+live contact and distance maps from 3D chromatin structure data for
+[Spacewalk](https://github.com/aidenlab/spacewalk)
 
 ## Installation
 
