@@ -1,12 +1,13 @@
 import { assert } from 'chai';
+import { describe, it } from 'vitest';
 import BufferedFile from '../src/io/bufferedFile.js';
 import LocalFile from '../src/io/nodeLocalFile.mjs';
 import RemoteFile from '../src/io/remoteFile.js';
 
 
-suite('BufferedFile', function () {
+describe('BufferedFile', function () {
 
-    test('test local file', async function () {
+    it('test local file', async function () {
 
         const path = "test/data/BufferedReaderTest.bin"
 

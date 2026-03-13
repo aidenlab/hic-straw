@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveContactMap Visual Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --map-size: 768;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #16213e;
+            padding: 12px 24px;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e94560;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-group-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        #file-picker {
+            padding: 6px 12px;
+            background: #0f3460;
+            border: 1px solid #e94560;
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 13px;
+            max-width: 180px;
+        }
+
+        #file-picker::-webkit-file-upload-button {
+            display: none;
+        }
+
+        .text-input {
+            padding: 6px 10px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 13px;
+            width: 300px;
+        }
+
+        .text-input:focus {
+            border-color: #e94560;
+            outline: none;
+        }
+
+        .text-input::placeholder {
+            color: #555;
+        }
+
+        .load-btn {
+            padding: 6px 12px;
+            background: #0f3460;
+            border: 1px solid #e94560;
+            border-radius: 4px;
+            color: #e94560;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .load-btn:hover {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .separator {
+            width: 1px;
+            height: 24px;
+            background: #0f3460;
+        }
+
+        #status {
+            font-size: 13px;
+            color: #888;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .main {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .panel h2 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #e94560;
+            margin-bottom: 8px;
+        }
+
+        .control-row {
+            margin-bottom: 10px;
+        }
+
+        .control-row label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 3px;
+        }
+
+        .control-row .value {
+            float: right;
+            font-weight: 600;
+            color: #e94560;
+        }
+
+        .control-row input[type="range"] {
+            width: 100%;
+            accent-color: #e94560;
+        }
+
+        .control-row select {
+            width: 100%;
+            padding: 4px 6px;
+            background: #0f3460;
+            border: 1px solid #333;
+            border-radius: 3px;
+            color: #e0e0e0;
+            font-size: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 3px 0;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .info-row .label { color: #888; }
+        .info-row .val { color: #e0e0e0; font-weight: 500; }
+
+        .canvases {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+        }
+
+        .canvas-section {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            padding: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .canvas-section h2 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #e94560;
+            margin-bottom: 8px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            background: #000;
+            border: 1px solid #333;
+        }
+
+        .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: calc(var(--map-size) * 1px);
+            height: calc(var(--map-size) * 1px);
+            background: #0a0a1a;
+            border: 1px dashed #333;
+            border-radius: 4px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .legend-gradient {
+            width: 120px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid #333;
+        }
+
+        #contact-legend-gradient {
+            background: linear-gradient(to right, rgba(255,0,0,0), rgba(255,0,0,1));
+        }
+
+        #distance-legend-gradient {
+            background: linear-gradient(to right, #0000ff, #ff0000);
+        }
+
+        .timing {
+            font-size: 11px;
+            color: #555;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>LiveContactMap</h1>
+
+    <div class="input-group">
+        <span class="input-group-label">File</span>
+        <input type="file" id="file-picker" accept=".swt,.txt">
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="input-group">
+        <span class="input-group-label">Path</span>
+        <input type="text" id="path-input" class="text-input" placeholder="e.g. resources/ball-and-stick.swt" style="width: 260px;">
+        <button id="path-load" class="load-btn">Load</button>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="input-group">
+        <span class="input-group-label">URL</span>
+        <input type="text" id="url-input" class="text-input" placeholder="https://...">
+        <button id="url-load" class="load-btn">Load</button>
+    </div>
+
+    <span id="status">Load an SWT file to begin</span>
+</header>
+
+<div class="main">
+
+    <div class="sidebar">
+
+        <div class="panel" id="info-panel">
+            <h2>File Info</h2>
+            <div id="info-content">
+                <div style="color: #555; font-size: 12px;">No file loaded</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Controls</h2>
+
+            <div class="control-row">
+                <label>Distance Threshold <span class="value" id="threshold-value">200</span></label>
+                <input type="range" id="threshold-slider" min="1" max="1000" value="200" step="1">
+            </div>
+
+            <div class="control-row">
+                <label>Neighbor Exclusion (K) <span class="value" id="exclusion-value">0</span></label>
+                <input type="range" id="exclusion-slider" min="0" max="20" value="0" step="1">
+            </div>
+
+            <div class="control-row">
+                <label>Contact Mode</label>
+                <select id="contact-mode">
+                    <option value="frequency" selected>Frequency (0-1)</option>
+                    <option value="contact">Binary (0/1)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Statistics</h2>
+            <div id="stats-content">
+                <div style="color: #555; font-size: 12px;">No data</div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="canvases">
+
+        <div class="canvas-section">
+            <h2>Contact Map</h2>
+            <div class="canvas-wrapper">
+                <div class="placeholder" id="contact-placeholder">Load SWT file</div>
+                <canvas id="contact-canvas" style="display: none;"></canvas>
+            </div>
+            <div class="legend">
+                <span>0</span>
+                <div class="legend-gradient" id="contact-legend-gradient"></div>
+                <span>1</span>
+                <span style="margin-left: 8px;">contact frequency</span>
+            </div>
+            <div class="timing" id="contact-timing"></div>
+        </div>
+
+        <div class="canvas-section">
+            <h2>Distance Map</h2>
+            <div class="canvas-wrapper">
+                <div class="placeholder" id="distance-placeholder">Load SWT file</div>
+                <canvas id="distance-canvas" style="display: none;"></canvas>
+            </div>
+            <div class="legend">
+                <span>close</span>
+                <div class="legend-gradient" id="distance-legend-gradient"></div>
+                <span>far</span>
+                <span style="margin-left: 8px;">Euclidean distance</span>
+            </div>
+            <div class="timing" id="distance-timing"></div>
+        </div>
+
+    </div>
+
+</div>
+
+<script type="module">
+
+    import LiveContactMap from '../src/liveContactMap.js'
+    import { DISTANCE_UNDEFINED } from '../src/distanceMatrix.js'
+
+    // --- DOM references ---
+    const filePicker = document.getElementById('file-picker')
+    const pathInput = document.getElementById('path-input')
+    const pathLoadBtn = document.getElementById('path-load')
+    const urlInput = document.getElementById('url-input')
+    const urlLoadBtn = document.getElementById('url-load')
+    const statusEl = document.getElementById('status')
+    const infoContent = document.getElementById('info-content')
+    const statsContent = document.getElementById('stats-content')
+
+    const thresholdSlider = document.getElementById('threshold-slider')
+    const thresholdValue = document.getElementById('threshold-value')
+    const exclusionSlider = document.getElementById('exclusion-slider')
+    const exclusionValue = document.getElementById('exclusion-value')
+    const contactModeSelect = document.getElementById('contact-mode')
+
+    const contactCanvas = document.getElementById('contact-canvas')
+    const contactPlaceholder = document.getElementById('contact-placeholder')
+    const contactTiming = document.getElementById('contact-timing')
+    const distanceCanvas = document.getElementById('distance-canvas')
+    const distancePlaceholder = document.getElementById('distance-placeholder')
+    const distanceTiming = document.getElementById('distance-timing')
+
+    // --- Constants ---
+    const MAP_SIZE = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--map-size').trim(),
+        10
+    ) || 800
+
+    // --- State ---
+    let lcm = null            // LiveContactMap instance
+    let currentSwtText = null  // Raw SWT text for mode changes
+
+    // --- Central loading function ---
+    async function loadSWT(swtText) {
+
+        statusEl.textContent = 'Processing...'
+        currentSwtText = swtText
+
+        try {
+            const t0 = performance.now()
+
+            lcm = new LiveContactMap({
+                swtText,
+                distanceThreshold: parseInt(thresholdSlider.value),
+                neighborExclusion: parseInt(exclusionSlider.value),
+                contactMode: contactModeSelect.value
+            })
+
+            await lcm.init()
+
+            const elapsed = (performance.now() - t0).toFixed(0)
+
+            // Update threshold slider max to 2x the max distance
+            const maxDist = lcm.maxDistance
+            thresholdSlider.max = Math.ceil(maxDist * 2)
+
+            // Cap current threshold at maxDist if needed
+            if (parseInt(thresholdSlider.value) > maxDist * 2) {
+                thresholdSlider.value = Math.ceil(maxDist / 2)
+                thresholdValue.textContent = thresholdSlider.value
+            }
+
+            // Update exclusion slider max
+            exclusionSlider.max = Math.min(20, lcm.traceLength - 2)
+
+            // Show info
+            updateInfoPanel()
+
+            statusEl.textContent = `Loaded in ${elapsed}ms`
+
+            // Render both maps
+            renderDistanceMap()
+            renderContactMap()
+
+        } catch (err) {
+            statusEl.textContent = `Error: ${err.message}`
+            console.error(err)
+        }
+    }
+
+    // --- Input: local file ---
+    filePicker.addEventListener('change', async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        statusEl.textContent = 'Reading file...'
+        try {
+            const swtText = await file.text()
+            await loadSWT(swtText)
+        } catch (err) {
+            statusEl.textContent = `Error reading file: ${err.message}`
+            console.error(err)
+        }
+    })
+
+    // --- Input: server path ---
+    async function loadFromPath() {
+        const path = pathInput.value.trim()
+        if (!path) return
+        statusEl.textContent = `Fetching ${path}...`
+        try {
+            const response = await fetch(path)
+            if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+            const swtText = await response.text()
+            await loadSWT(swtText)
+        } catch (err) {
+            statusEl.textContent = `Error loading path: ${err.message}`
+            console.error(err)
+        }
+    }
+
+    pathLoadBtn.addEventListener('click', loadFromPath)
+    pathInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadFromPath()
+    })
+
+    // --- Input: URL ---
+    async function loadFromURL() {
+        const url = urlInput.value.trim()
+        if (!url) return
+        statusEl.textContent = `Fetching URL...`
+        try {
+            const response = await fetch(url)
+            if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+            const swtText = await response.text()
+            await loadSWT(swtText)
+        } catch (err) {
+            statusEl.textContent = `Error loading URL: ${err.message}`
+            console.error(err)
+        }
+    }
+
+    urlLoadBtn.addEventListener('click', loadFromURL)
+    urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadFromURL()
+    })
+
+    // --- Controls ---
+    thresholdSlider.addEventListener('input', () => {
+        const val = parseInt(thresholdSlider.value)
+        thresholdValue.textContent = val
+        if (!lcm) return
+
+        const t0 = performance.now()
+        lcm.setDistanceThreshold(val)
+        const elapsed = (performance.now() - t0).toFixed(1)
+
+        renderContactMap()
+        updateStatsPanel()
+        contactTiming.textContent = `Threshold update: ${elapsed}ms`
+    })
+
+    exclusionSlider.addEventListener('input', () => {
+        const val = parseInt(exclusionSlider.value)
+        exclusionValue.textContent = val
+        if (!lcm) return
+
+        const t0 = performance.now()
+        lcm.setNeighborExclusion(val)
+        const elapsed = (performance.now() - t0).toFixed(1)
+
+        renderContactMap()
+        updateStatsPanel()
+        contactTiming.textContent = `Exclusion update: ${elapsed}ms`
+    })
+
+    contactModeSelect.addEventListener('change', async () => {
+        if (!lcm || !currentSwtText) return
+
+        // Rebuild with new contact mode
+        statusEl.textContent = 'Recomputing...'
+
+        const t0 = performance.now()
+
+        lcm = new LiveContactMap({
+            swtText: currentSwtText,
+            distanceThreshold: parseInt(thresholdSlider.value),
+            neighborExclusion: parseInt(exclusionSlider.value),
+            contactMode: contactModeSelect.value
+        })
+
+        await lcm.init()
+
+        const elapsed = (performance.now() - t0).toFixed(0)
+        statusEl.textContent = `Mode changed in ${elapsed}ms`
+
+        renderContactMap()
+        updateStatsPanel()
+    })
+
+    // --- Info panel ---
+    function updateInfoPanel() {
+        if (!lcm) return
+
+        const meta = lcm.meta
+        const chr = lcm.chromosomes.find(c => c.name !== 'All')
+
+        infoContent.innerHTML = [
+            infoRow('Genome', lcm.genomeId),
+            infoRow('Chromosome', chr ? chr.name : '?'),
+            infoRow('Region', `${fmt(lcm.genomicStart)}-${fmt(lcm.genomicEnd)}`),
+            infoRow('Bin size', `${(lcm.binSize / 1000).toFixed(0)}kb`),
+            infoRow('Bins', lcm.traceLength),
+            infoRow('Traces', lcm.traces.length),
+            infoRow('Max distance', lcm.maxDistance.toFixed(1)),
+        ].join('')
+
+        updateStatsPanel()
+    }
+
+    function updateStatsPanel() {
+        if (!lcm) return
+
+        const nRecords = lcm.contactRecords.length
+        const totalPairs = lcm.traceLength * (lcm.traceLength - 1) / 2
+        const pct = ((nRecords / totalPairs) * 100).toFixed(1)
+
+        // Compute average counts
+        let sumCounts = 0
+        for (const rec of lcm.contactRecords) {
+            sumCounts += rec.counts
+        }
+        const avgCounts = nRecords > 0 ? (sumCounts / nRecords).toFixed(3) : '0'
+
+        statsContent.innerHTML = [
+            infoRow('Contact records', nRecords.toLocaleString()),
+            infoRow('Total pairs', totalPairs.toLocaleString()),
+            infoRow('Contact %', `${pct}%`),
+            infoRow('Avg frequency', avgCounts),
+            infoRow('Threshold', lcm.distanceThreshold),
+            infoRow('Exclusion K', lcm.neighborExclusion),
+            infoRow('Mode', lcm.contactMode),
+        ].join('')
+    }
+
+    function infoRow(label, val) {
+        return `<div class="info-row"><span class="label">${label}</span><span class="val">${val}</span></div>`
+    }
+
+    function fmt(bp) {
+        if (bp >= 1e6) return (bp / 1e6).toFixed(1) + 'M'
+        if (bp >= 1e3) return (bp / 1e3).toFixed(0) + 'k'
+        return bp
+    }
+
+    // --- Canvas rendering ---
+
+    function renderContactMap() {
+        if (!lcm) return
+
+        const t0 = performance.now()
+        const N = lcm.traceLength
+        const size = MAP_SIZE
+        const scale = size / N
+
+        contactCanvas.width = size
+        contactCanvas.height = size
+        contactCanvas.style.display = 'block'
+        contactPlaceholder.style.display = 'none'
+
+        const ctx = contactCanvas.getContext('2d')
+        // White background so alpha-blended red is visible
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, size, size)
+
+        const imageData = ctx.getImageData(0, 0, size, size)
+        const data = imageData.data
+
+        const offset = lcm.binOffset
+
+        for (const rec of lcm.contactRecords) {
+            const x = rec.bin1 - offset
+            const y = rec.bin2 - offset
+
+            if (x < 0 || x >= N || y < 0 || y >= N) continue
+
+            const alpha = Math.floor(255 * Math.min(rec.counts, 1))
+
+            // Draw scaled pixels for both upper and lower triangle
+            fillScaledPixel(data, size, x, y, scale, 255, 0, 0, alpha)
+            fillScaledPixel(data, size, y, x, scale, 255, 0, 0, alpha)
+        }
+
+        // Diagonal line
+        for (let i = 0; i < N; i++) {
+            fillScaledPixel(data, size, i, i, scale, 40, 40, 40, 255)
+        }
+
+        ctx.putImageData(imageData, 0, 0)
+
+        const elapsed = (performance.now() - t0).toFixed(1)
+        contactTiming.textContent = `Rendered in ${elapsed}ms`
+    }
+
+    function renderDistanceMap() {
+        if (!lcm) return
+
+        const t0 = performance.now()
+        const { distances, maxDistance, traceLength: N } = lcm.getDistanceMatrix()
+        const size = MAP_SIZE
+        const scale = size / N
+
+        distanceCanvas.width = size
+        distanceCanvas.height = size
+        distanceCanvas.style.display = 'block'
+        distancePlaceholder.style.display = 'none'
+
+        const ctx = distanceCanvas.getContext('2d')
+        ctx.fillStyle = '#000000'
+        ctx.fillRect(0, 0, size, size)
+
+        const imageData = ctx.getImageData(0, 0, size, size)
+        const data = imageData.data
+
+        for (let i = 0; i < N; i++) {
+            for (let j = i; j < N; j++) {
+                const dist = distances[i * N + j]
+                if (dist === DISTANCE_UNDEFINED) continue
+
+                // close = blue, far = red
+                const t = maxDistance > 0 ? dist / maxDistance : 0
+                const r = Math.floor(255 * t)
+                const g = 0
+                const b = Math.floor(255 * (1 - t))
+
+                fillScaledPixel(data, size, i, j, scale, r, g, b, 255)
+                fillScaledPixel(data, size, j, i, scale, r, g, b, 255)
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0)
+
+        const elapsed = (performance.now() - t0).toFixed(1)
+        distanceTiming.textContent = `Rendered in ${elapsed}ms`
+    }
+
+    /**
+     * Fill a scaled pixel block in the ImageData buffer.
+     * Each logical bin (x, y) maps to a rectangular block of pixels.
+     * Uses floor boundaries to guarantee full coverage with no gaps.
+     */
+    function fillScaledPixel(data, size, x, y, scale, r, g, b, a) {
+        const x0 = Math.floor(x * scale)
+        const y0 = Math.floor(y * scale)
+        const x1 = Math.floor((x + 1) * scale)
+        const y1 = Math.floor((y + 1) * scale)
+        for (let py = y0; py < y1; py++) {
+            for (let px = x0; px < x1; px++) {
+                if (px >= size || py >= size) continue
+                const idx = (py * size + px) * 4
+                if (a < 255) {
+                    // Alpha blend over white background
+                    const invA = 255 - a
+                    data[idx]     = Math.floor((r * a + 255 * invA) / 255)
+                    data[idx + 1] = Math.floor((g * a + 255 * invA) / 255)
+                    data[idx + 2] = Math.floor((b * a + 255 * invA) / 255)
+                    data[idx + 3] = 255
+                } else {
+                    data[idx]     = r
+                    data[idx + 1] = g
+                    data[idx + 2] = b
+                    data[idx + 3] = 255
+                }
+            }
+        }
+    }
+
+</script>
+
+</body>
+</html>

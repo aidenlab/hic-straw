@@ -1,10 +1,11 @@
 import {assert} from 'chai';
+import { describe, it } from 'vitest';
 import Straw from '../src/straw.js';
 import NodeLocalFile from '../src/io/nodeLocalFile.mjs';
 
-suite('Straw', function () {
+describe('Straw', function () {
 
-    test('local file meta data', async function () {
+    it('local file meta data', async function () {
 
         const file = new NodeLocalFile({
             "path": "test/data/test_chr22.hic"
@@ -20,7 +21,7 @@ suite('Straw', function () {
 
     })
 
-    test('local file norm vector options', async function () {
+    it('local file norm vector options', async function () {
 
         const file = new NodeLocalFile({
             "path": "test/data/test_chr22.hic"
@@ -32,7 +33,7 @@ suite('Straw', function () {
         assert.equal(normalizationOptions.length, 4)
     })
 
-    test('local file nvi', async function () {
+    it('local file nvi', async function () {
 
         const file = new NodeLocalFile({
             "path": "test/data/test_chr22.hic"
@@ -43,7 +44,7 @@ suite('Straw', function () {
         assert.equal(nvi, "1720269,751")
     })
 
-    test('local file contact records', async function () {
+    it('local file contact records', async function () {
 
         const file = new NodeLocalFile({
             "path": "test/data/test_chr22.hic"
@@ -62,7 +63,7 @@ suite('Straw', function () {
         assert.equal(contactRecords.length, 70)
     })
 
-    test('local file contact records - with NVI', async function () {
+    it('local file contact records - with NVI', async function () {
 
         const file = new NodeLocalFile({
             "path": "test/data/test_chr22.hic"
@@ -81,9 +82,8 @@ suite('Straw', function () {
         assert.equal(contactRecords.length, 70)
     })
 
-    test('remote file contact records', async function () {
+    it('remote file contact records', async function () {
 
-        this.timeout(100000);
         const straw = new Straw({
             "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic",
             "nvi": "863389571,18679"
@@ -99,11 +99,10 @@ suite('Straw', function () {
 
         assert.equal(contactRecords.length, 210)  // Earlier versions contained 110 duplicates
 
-    })
+    }, 100000)
 
-    test('Version 7 file', async function () {
+    it('Version 7 file', async function () {
 
-        this.timeout(100000);
         const straw = new Straw({
             "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic"
         })
@@ -117,21 +116,19 @@ suite('Straw', function () {
 
         assert.ok(contactRecords.length > 0)
 
-    })
+    }, 100000)
 
-    test('norm vectors', async function () {
+    it('norm vectors', async function () {
 
-        this.timeout(100000);
         const straw = new Straw({
             "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic"
         })
         const normOptions = await straw.getNormalizationOptions();
         assert.equal(normOptions.length, 4)
-    })
+    }, 100000)
 
-    test('norm vectors - with NVI', async function () {
+    it('norm vectors - with NVI', async function () {
 
-        this.timeout(100000);
         const straw = new Straw({
             "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic",
             "nvi": "863389571,18679"
@@ -139,11 +136,10 @@ suite('Straw', function () {
         const normOptions = await straw.getNormalizationOptions();
         assert.equal(normOptions.length, 4)
 
-    })
+    }, 100000)
 
-    test('GEO file', async function () {
+    it('GEO file', async function () {
 
-        this.timeout(100000);
         const straw = new Straw({
             "url": "https://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2583nnn/GSM2583729/suppl/GSM2583729_H3K27ac_HiChIP_2.hic"
         })
@@ -157,11 +153,10 @@ suite('Straw', function () {
 
         assert.ok(contactRecords.length > 0)
 
-    })
+    }, 100000)
 
 
-    test('remote file transpose', async function () {
-        this.timeout(100000);
+    it('remote file transpose', async function () {
         const straw = new Straw({
             "url": "https://hicfiles.s3.amazonaws.com/hiseq/gm12878/in-situ/primary.hic",
             "nvi": "33860030033,37504"
@@ -185,10 +180,9 @@ suite('Straw', function () {
         for(let record of contactRecords) {
             assert.ok(record.bin2 >= record.bin1)
         }
-    })
+    }, 100000)
 
-    test('remote file transpose 2', async function () {
-        this.timeout(100000);
+    it('remote file transpose 2', async function () {
         const straw = new Straw({
             "url": "https://hicfiles.s3.amazonaws.com/hiseq/gm12878/in-situ/primary.hic",
             "nvi": "33860030033,37504"
@@ -216,11 +210,10 @@ suite('Straw', function () {
             binSize
         )
         assert.equal(contactRecordsTranposed.length, contactRecords.length);
-    })
+    }, 100000)
 
-    test('contact records - inter chr', async function () {
+    it('contact records - inter chr', async function () {
 
-        this.timeout(100000);
         const straw = new Straw({
             "url": "https://hicfiles.s3.amazonaws.com/hiseq/gm12878/in-situ/primary.hic"
         })
@@ -247,7 +240,7 @@ suite('Straw', function () {
         assert.equal(contactRecords.length, contactRecordsTransposed.length)
 
 
-    })
+    }, 100000)
 
 
 })

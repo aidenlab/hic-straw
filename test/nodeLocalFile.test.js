@@ -1,12 +1,13 @@
 import { assert } from 'chai';
+import { describe, it } from 'vitest';
 
 import NodeLocalFile from '../src/io/nodeLocalFile.mjs'
 
 const range = {start: 25, size: 100};
 
-suite('NodeLocalFile', function () {
+describe('NodeLocalFile', function () {
 
-    test('test read range', async function () {
+    it('test read range', async function () {
 
         const path = "test/data/BufferedReaderTest.bin"
 

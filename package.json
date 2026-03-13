@@ -1,46 +1,42 @@
 {
   "name": "hic-straw",
   "version": "2.1.4",
-  "description": "Utilities for reading .files (contact matrix files)",
-  "main": "dist/hic-straw.js",
-  "module": "dist/hic-straw.esm.js",
+  "description": "Utilities for reading .hic contact matrix files",
   "type": "module",
+  "main": "dist/hic-straw.cjs.js",
+  "module": "dist/hic-straw.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/hic-straw.esm.js",
+      "require": "./dist/hic-straw.cjs.js"
+    },
+    "./node": "./src/io/nodeLocalFile.mjs"
+  },
   "files": [
     "dist/**",
     "src/**",
     "cli.js"
   ],
   "scripts": {
+    "dev": "vite",
+    "build": "vite build --config vite.config.lib.js",
+    "preview": "vite preview",
     "prepare": "npm run build",
-    "build": "npx del-cli dist && npx rollup --config",
-    "test": "mocha -ui tdd",
     "prepack": "npm run build",
-    "fix-mocha": "npx uni -D mocha && npx i -D mocha"
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "devDependencies": {
-    "@babel/cli": "^7.18.10",
-    "@babel/core": "^7.11.4",
-    "@babel/plugin-transform-regenerator": "^7.10.4",
-    "@babel/plugin-transform-runtime": "^7.11.0",
-    "@babel/preset-env": "^7.11.0",
-    "@rollup/plugin-babel": "^5.3.1",
-    "@rollup/plugin-commonjs": "^22.0.2",
-    "@rollup/plugin-node-resolve": "^13.3.0",
-    "@rollup/plugin-strip": "^2.1.0",
-    "acorn": "^7.4.0",
-    "chai": "^4.2.0",
-    "core-js": "^3.25.0",
-    "del-cli": "^3.0.1",
-    "mocha": "^10.2.0",
-    "node-fetch": "^2.6.0",
-    "regenerator-runtime": "^0.13.7",
-    "rollup": "^2.79.0",
-    "rollup-plugin-copy": "^3.3.0",
-    "rollup-plugin-terser": "^7.0.0"
+    "chai": "^6.2.2",
+    "vite": "^7.3.1",
+    "vitest": "^3.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/igvteam/hic-straw.git"
+    "url": "git+https://github.com/aidenlab/hic-straw.git"
   },
   "keywords": [
     "hic",
@@ -48,12 +44,16 @@
     "juicebox"
   ],
   "author": "Jim Robinson <igv-team@broadinstitute.org> (https://igv.org)",
+  "contributors": [
+    "Jim Robinson <igv-team@broadinstitute.org> (https://igv.org)",
+    "Douglass Turner (https://github.com/turner)"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/igvteam/hic-straw/issues"
+    "url": "https://github.com/aidenlab/hic-straw/issues"
   },
   "bin": {
     "straw": "cli.js"
   },
-  "homepage": "https://github.com/igvteam/hic-straw#readme"
+  "homepage": "https://github.com/aidenlab/hic-straw#readme"
 }
