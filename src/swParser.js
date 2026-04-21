@@ -102,12 +102,14 @@ async function parseSW({ file, url, path } = {}) {
         throw new Error('SW file contains no trace datasets (t_<n>)')
     }
 
-    const traces = []
-    for (const key of traceKeys) {
+    // Read trace datasets in parallel — jsfive's per-dataset work (b-tree walk,
+    // chunk decode) can overlap, which is a meaningful win when there are many
+    // traces. Serial reads were the dominant cost on large ensembles.
+    const traces = await Promise.all(traceKeys.map(async key => {
         const ds = await spatialGroup.get(key)
         const values = await ds.value   // flat [x, y, z, ...]
-        traces.push(toVertexList(values))
-    }
+        return toVertexList(values)
+    }))
 
     const traceLength = traces[0].length
     if (traceLength !== regionCount) {
