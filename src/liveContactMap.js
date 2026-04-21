@@ -15,6 +15,7 @@
 
 import ContactRecord from './contactRecord.js'
 import { parseSWT } from './swtParser.js'
+import { parseSW } from './swParser.js'
 import { computeEnsembleDistances, DISTANCE_UNDEFINED } from './distanceMatrix.js'
 import { deriveContactRecords, deriveEnsembleContactFrequencies } from './contactDerivation.js'
 
@@ -74,7 +75,10 @@ class LiveContactMap {
     /**
      * @param {object} config
      * @param {string} [config.swtText] - Raw SWT text to parse (option A)
-     * @param {object} [config.parsedData] - Pre-parsed SWT data (option B)
+     * @param {File|Blob} [config.swFile] - Browser File/Blob for a .sw (HDF5) file (option A2)
+     * @param {string} [config.swUrl] - Remote URL for a .sw (HDF5) file (option A3)
+     * @param {string} [config.swPath] - Node-local path for a .sw (HDF5) file (option A4)
+     * @param {object} [config.parsedData] - Pre-parsed SWT/SW data (option B)
      * @param {Array} [config.traces] - Raw trace vertex arrays (option C)
      * @param {Array} [config.chromosomes] - Chromosome array [{index, name, size}]
      * @param {string} [config.genomeId] - Genome identifier (e.g. "hg38")
@@ -120,6 +124,16 @@ class LiveContactMap {
             binSize = config.binSize || parsed.binSize
             traceLength = parsed.traceLength
             sample = parsed.sample
+        } else if (config.swFile || config.swUrl || config.swPath) {
+            const parsed = await parseSW({ file: config.swFile, url: config.swUrl, path: config.swPath })
+            traces = parsed.traces
+            genomeId = config.genomeId || parsed.genomeId
+            chr = config.chr || parsed.chr
+            genomicStart = config.genomicStart !== undefined ? config.genomicStart : parsed.genomicStart
+            genomicEnd = config.genomicEnd !== undefined ? config.genomicEnd : parsed.genomicEnd
+            binSize = config.binSize || parsed.binSize
+            traceLength = parsed.traceLength
+            sample = parsed.sample
         } else if (config.parsedData) {
             const pd = config.parsedData
             traces = pd.traces
@@ -140,7 +154,7 @@ class LiveContactMap {
             traceLength = config.traceLength || traces[0].length
             sample = config.name
         } else {
-            throw new Error('LiveContactMap requires swtText, parsedData, or traces in config')
+            throw new Error('LiveContactMap requires swtText, swFile/swUrl/swPath, parsedData, or traces in config')
         }
 
         // --- Store core data ---
