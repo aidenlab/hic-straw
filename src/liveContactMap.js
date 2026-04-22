@@ -16,6 +16,7 @@
 import ContactRecord from './contactRecord.js'
 import { parseSWT } from './swtParser.js'
 import { parseSW } from './swParser.js'
+import { loadLiveVertices } from './liveVertexLoader.js'
 import { computeEnsembleDistances, DISTANCE_UNDEFINED } from './distanceMatrix.js'
 import { deriveContactRecords, deriveEnsembleContactFrequencies } from './contactDerivation.js'
 
@@ -78,6 +79,8 @@ class LiveContactMap {
      * @param {File|Blob} [config.swFile] - Browser File/Blob for a .sw (HDF5) file (option A2)
      * @param {string} [config.swUrl] - Remote URL for a .sw (HDF5) file (option A3)
      * @param {string} [config.swPath] - Node-local path for a .sw (HDF5) file (option A4)
+     * @param {object} [config.hdf5] - Already-open hdf5-indexed-reader handle (option A5, paired with ensembleGroupKey)
+     * @param {string} [config.ensembleGroupKey] - Ensemble group key inside the hdf5 file (required with config.hdf5)
      * @param {object} [config.parsedData] - Pre-parsed SWT/SW data (option B)
      * @param {Array} [config.traces] - Raw trace vertex arrays (option C)
      * @param {Array} [config.chromosomes] - Chromosome array [{index, name, size}]
@@ -134,6 +137,17 @@ class LiveContactMap {
             binSize = config.binSize || parsed.binSize
             traceLength = parsed.traceLength
             sample = parsed.sample
+        } else if (config.hdf5 && config.ensembleGroupKey) {
+            // Caller owns the HDF5 handle; hic-straw just reads vertices from it.
+            // All metadata (genomeId, chr, ...) must be supplied by the caller.
+            traces = await loadLiveVertices({ hdf5: config.hdf5, ensembleGroupKey: config.ensembleGroupKey })
+            genomeId = config.genomeId
+            chr = config.chr
+            genomicStart = config.genomicStart
+            genomicEnd = config.genomicEnd
+            binSize = config.binSize
+            traceLength = config.traceLength || traces[0].length
+            sample = config.name
         } else if (config.parsedData) {
             const pd = config.parsedData
             traces = pd.traces
@@ -154,7 +168,7 @@ class LiveContactMap {
             traceLength = config.traceLength || traces[0].length
             sample = config.name
         } else {
-            throw new Error('LiveContactMap requires swtText, swFile/swUrl/swPath, parsedData, or traces in config')
+            throw new Error('LiveContactMap requires swtText, swFile/swUrl/swPath, hdf5+ensembleGroupKey, parsedData, or traces in config')
         }
 
         // --- Store core data ---

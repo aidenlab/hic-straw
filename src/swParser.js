@@ -14,6 +14,8 @@
  * Output shape matches parseSWT() so LiveContactMap consumes it unchanged.
  */
 
+import { loadLiveVertices } from './liveVertexLoader.js'
+
 // hdf5-indexed-reader ships no `main`/`exports` field, so bundlers can't resolve the
 // bare import. Point at the explicit dist file for each environment. Detect the
 // browser positively — Vite's dev server sometimes shims `process`, so a Node-side
@@ -89,27 +91,11 @@ async function parseSW({ file, url, path } = {}) {
     const genomicStart = parseInt(regionValues[1], 10)
     const genomicEnd = parseInt(regionValues[regionValues.length - 1], 10)
 
-    // --- Trace datasets (t_0, t_1, ...) ---
-    const spatialGroup = await hdf5.get(`${ensembleGroupKey}/spatial_position`)
-    if (!spatialGroup) throw new Error(`SW file missing ${ensembleGroupKey}/spatial_position`)
-    const spatialKeys = await spatialGroup.keys
-
-    const traceKeys = spatialKeys
-        .filter(k => /^t_\d+$/.test(k))
-        .sort((a, b) => parseInt(a.slice(2), 10) - parseInt(b.slice(2), 10))
-
-    if (traceKeys.length === 0) {
-        throw new Error('SW file contains no trace datasets (t_<n>)')
-    }
-
-    // Read trace datasets in parallel — jsfive's per-dataset work (b-tree walk,
-    // chunk decode) can overlap, which is a meaningful win when there are many
-    // traces. Serial reads were the dominant cost on large ensembles.
-    const traces = await Promise.all(traceKeys.map(async key => {
-        const ds = await spatialGroup.get(key)
-        const values = await ds.value   // flat [x, y, z, ...]
-        return toVertexList(values)
-    }))
+    // --- Trace vertex data ---
+    // Delegates to loadLiveVertices: tries the baked `live_contact_map_vertices`
+    // fast path, else reads spatial_position/t_* sequentially. Sequential
+    // fallback avoids remote-host rate limits (e.g. Dropbox 429).
+    const traces = await loadLiveVertices({ hdf5, ensembleGroupKey })
 
     const traceLength = traces[0].length
     if (traceLength !== regionCount) {
@@ -128,25 +114,6 @@ async function parseSW({ file, url, path } = {}) {
         traceLength,
         traces
     }
-}
-
-/**
- * Convert a flat [x,y,z,x,y,z,...] array into vertex objects.
- * NaN positions are marked isMissingData (matching parseSWT's convention).
- */
-function toVertexList(numbers) {
-    const list = []
-    for (let i = 0; i < numbers.length; i += 3) {
-        const x = numbers[i]
-        const y = numbers[i + 1]
-        const z = numbers[i + 2]
-        const vertex = { x, y, z }
-        if (isNaN(x) || isNaN(y) || isNaN(z)) {
-            vertex.isMissingData = true
-        }
-        list.push(vertex)
-    }
-    return list
 }
 
 export { parseSW }
