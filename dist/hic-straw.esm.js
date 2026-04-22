@@ -4196,7 +4196,7 @@ class fe {
     return this.resolution === e && this.map.has(a);
   }
 }
-class xe {
+class Ee {
   constructor(e) {
     this.config = e, e.liveContactMap ? this.hicFile = e.liveContactMap : this.hicFile = new ce(e);
   }
@@ -4266,7 +4266,7 @@ async function W({ hdf5: o, ensembleGroupKey: e }) {
   if (!o) throw new Error("loadLiveVertices requires an open hdf5 handle");
   if (!e) throw new Error("loadLiveVertices requires ensembleGroupKey");
   const a = await we(o, e);
-  return a || le(o, e);
+  return a || pe(o, e);
 }
 async function we(o, e) {
   const a = await o.get(e);
@@ -4275,12 +4275,27 @@ async function we(o, e) {
   if (r !== void 0 && Number(r) !== he)
     return null;
   const c = await a.get("live_contact_map_vertices"), f = await c.shape;
-  if (!f || f.length !== 3 || f[2] !== 3)
+  if (!f) return null;
+  let s, h;
+  if (f.length === 3 && f[2] === 3)
+    s = f[0], h = f[1];
+  else if (f.length === 2 && f[1] === 3) {
+    if (h = await ue(a), !h || f[0] % h !== 0) return null;
+    s = f[0] / h;
+  } else
     return null;
-  const [s, h] = f, d = await c.value;
-  return ue(d, s, h);
+  const d = await c.value;
+  return le(d, s, h);
 }
-function ue(o, e, a) {
+async function ue(o) {
+  const e = await o.get("genomic_position/regions");
+  if (!e) return null;
+  const a = await e.shape;
+  if (!a) return null;
+  const i = a.reduce((t, n) => t * n, 1);
+  return i % 3 !== 0 ? null : i / 3;
+}
+function le(o, e, a) {
   const i = new Array(e);
   let t = 0;
   for (let n = 0; n < e; n++) {
@@ -4293,7 +4308,7 @@ function ue(o, e, a) {
   }
   return i;
 }
-async function le(o, e) {
+async function pe(o, e) {
   const a = await o.get(`${e}/spatial_position`);
   if (!a)
     throw new Error(`SW file missing ${e}/spatial_position`);
@@ -4303,11 +4318,11 @@ async function le(o, e) {
   const t = [];
   for (const n of i) {
     const c = await (await a.get(n)).value;
-    t.push(pe(c));
+    t.push(me(c));
   }
   return t;
 }
-function pe(o) {
+function me(o) {
   const e = new Array(o.length / 3);
   for (let a = 0, i = 0; a < o.length; a += 3, i++) {
     const t = o[a], n = o[a + 1], r = o[a + 2], c = { x: t, y: n, z: r };
@@ -4315,11 +4330,11 @@ function pe(o) {
   }
   return e;
 }
-const me = typeof window < "u" && typeof document < "u", be = me ? import("hdf5-indexed-reader/dist/hdf5-indexed-reader.esm.js") : import("hdf5-indexed-reader/dist/hdf5-indexed-reader.node.mjs");
-async function Ne({ file: o, url: e, path: a } = {}) {
+const be = typeof window < "u" && typeof document < "u", Ne = be ? import("hdf5-indexed-reader/dist/hdf5-indexed-reader.esm.js") : import("hdf5-indexed-reader/dist/hdf5-indexed-reader.node.mjs");
+async function Ie({ file: o, url: e, path: a } = {}) {
   if (!o && !e && !a)
     throw new Error("parseSW requires one of: file, url, path");
-  const { openH5File: i } = await be, t = await i(o ? { file: o } : e ? { url: e } : { path: a }), n = await t.get("/Header");
+  const { openH5File: i } = await Ne, t = await i(o ? { file: o } : e ? { url: e } : { path: a }), n = await t.get("/Header");
   if (!n) throw new Error("SW file missing /Header group");
   const r = await n.attrs, c = r.genome, f = (r.point_type || "").toString().toLowerCase();
   if (f && f !== "single_point")
@@ -4353,7 +4368,7 @@ async function Ne({ file: o, url: e, path: a } = {}) {
   };
 }
 const V = -1;
-function Ie(o, e) {
+function ze(o, e) {
   const a = e, i = new Float64Array(a * a), t = new Uint32Array(a * a);
   for (const c of o)
     for (let f = 0; f < a; f++) {
@@ -4381,7 +4396,7 @@ function Ie(o, e) {
   }
   return { distances: n, maxDistance: r };
 }
-function ze(o, e, a, i = {}) {
+function Ce(o, e, a, i = {}) {
   const t = i.neighborExclusion || 0, n = [];
   for (let r = 0; r < e; r++)
     for (let c = r + 1; c < e; c++) {
@@ -4391,7 +4406,7 @@ function ze(o, e, a, i = {}) {
     }
   return n;
 }
-function Ce(o, e, a, i = {}) {
+function ge(o, e, a, i = {}) {
   const t = i.neighborExclusion || 0, n = e, r = new Uint32Array(n * n), c = new Uint32Array(n * n);
   for (const h of o)
     for (let d = 0; d < n; d++) {
@@ -4420,7 +4435,7 @@ function Ce(o, e, a, i = {}) {
   }
   return { contactRecords: s, contactFrequencies: f };
 }
-const ge = {
+const De = {
   hg38: {
     chr1: 248956422,
     chr2: 242193529,
@@ -4474,7 +4489,7 @@ const ge = {
     chrY: 59373566
   }
 };
-class De {
+class xe {
   constructor(e, a, i) {
     this.chr1 = e, this.chr2 = a, this._zoomData = i;
   }
@@ -4488,7 +4503,7 @@ class De {
     return 0;
   }
 }
-class Ee {
+class ve {
   /**
    * @param {object} config
    * @param {string} [config.swtText] - Raw SWT text to parse (option A)
@@ -4529,7 +4544,7 @@ class Ee {
       const s = de(e.swtText);
       a = s.traces, i = e.genomeId || s.genomeId, t = e.chr || s.chr, n = e.genomicStart !== void 0 ? e.genomicStart : s.genomicStart, r = e.genomicEnd !== void 0 ? e.genomicEnd : s.genomicEnd, c = e.binSize || s.binSize, f = s.traceLength;
     } else if (e.swFile || e.swUrl || e.swPath) {
-      const s = await Ne({ file: e.swFile, url: e.swUrl, path: e.swPath });
+      const s = await Ie({ file: e.swFile, url: e.swUrl, path: e.swPath });
       a = s.traces, i = e.genomeId || s.genomeId, t = e.chr || s.chr, n = e.genomicStart !== void 0 ? e.genomicStart : s.genomicStart, r = e.genomicEnd !== void 0 ? e.genomicEnd : s.genomicEnd, c = e.binSize || s.binSize, f = s.traceLength, s.sample;
     } else if (e.hdf5 && e.ensembleGroupKey)
       a = await W({ hdf5: e.hdf5, ensembleGroupKey: e.ensembleGroupKey }), i = e.genomeId, t = e.chr, n = e.genomicStart, r = e.genomicEnd, c = e.binSize, f = e.traceLength || a[0].length, e.name;
@@ -4544,7 +4559,7 @@ class Ee {
       this.chromosomes = e.chromosomes;
     else {
       let s;
-      const h = ge[i];
+      const h = De[i];
       h && h[t] ? s = h[t] : s = r, this.chromosomes = [
         { index: 0, name: "All", size: s },
         { index: 1, name: t, size: s }
@@ -4613,7 +4628,7 @@ class Ee {
       occupiedCellCount: this.contactRecords.length,
       percent95: 0
     };
-    return new De(i, t, f);
+    return new xe(i, t, f);
   }
   /**
    * @returns {Promise<boolean>} Always false — live maps don't support normalization vectors
@@ -4697,7 +4712,7 @@ class Ee {
    * @private
    */
   _computeDistances() {
-    const e = Ie(this.traces, this.traceLength);
+    const e = ze(this.traces, this.traceLength);
     this.distanceMatrix = e.distances, this.maxDistance = e.maxDistance;
   }
   /**
@@ -4709,7 +4724,7 @@ class Ee {
     const e = { neighborExclusion: this.neighborExclusion };
     let a;
     if (this.contactMode === "frequency") {
-      const t = Ce(
+      const t = ge(
         this.traces,
         this.traceLength,
         this.distanceThreshold,
@@ -4717,7 +4732,7 @@ class Ee {
       );
       a = t.contactRecords, this.contactFrequencies = t.contactFrequencies;
     } else
-      a = ze(
+      a = Ce(
         this.distanceMatrix,
         this.traceLength,
         this.distanceThreshold,
@@ -4730,7 +4745,7 @@ class Ee {
   }
 }
 export {
-  Ee as LiveContactMap,
-  xe as default
+  ve as LiveContactMap,
+  Ee as default
 };
 //# sourceMappingURL=hic-straw.esm.js.map

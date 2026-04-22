@@ -44,13 +44,35 @@ async function tryReadBaked(hdf5, ensembleGroupKey) {
 
     const ds = await ensembleGroup.get('live_contact_map_vertices')
     const shape = await ds.shape
-    if (!shape || shape.length !== 3 || shape[2] !== 3) {
+    if (!shape) return null
+
+    // v1 canonical: [traceCount, traceLength, 3].
+    // Legacy: [traceCount * traceLength, 3] — infer traceLength from regions.
+    let traceCount, traceLength
+    if (shape.length === 3 && shape[2] === 3) {
+        traceCount = shape[0]
+        traceLength = shape[1]
+    } else if (shape.length === 2 && shape[1] === 3) {
+        traceLength = await readTraceLengthFromRegions(ensembleGroup)
+        if (!traceLength || shape[0] % traceLength !== 0) return null
+        traceCount = shape[0] / traceLength
+    } else {
         return null
     }
-    const [traceCount, traceLength] = shape
 
     const flat = await ds.value
     return unpackBakedVertices(flat, traceCount, traceLength)
+}
+
+async function readTraceLengthFromRegions(ensembleGroup) {
+    const regionsDataset = await ensembleGroup.get('genomic_position/regions')
+    if (!regionsDataset) return null
+    const regionsShape = await regionsDataset.shape
+    if (!regionsShape) return null
+    // regions is a flat [chr, start, end, ...] triple per bin.
+    const total = regionsShape.reduce((a, b) => a * b, 1)
+    if (total % 3 !== 0) return null
+    return total / 3
 }
 
 function unpackBakedVertices(flat, traceCount, traceLength) {
