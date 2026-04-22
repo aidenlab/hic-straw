@@ -270,7 +270,7 @@
 
     <div class="input-group">
         <span class="input-group-label">File</span>
-        <input type="file" id="file-picker" accept=".swt,.txt">
+        <input type="file" id="file-picker" accept=".swt,.sw,.swb,.txt">
     </div>
 
     <div class="separator"></div>
@@ -405,24 +405,35 @@
     ) || 800
 
     // --- State ---
-    let lcm = null            // LiveContactMap instance
-    let currentSwtText = null  // Raw SWT text for mode changes
+    let lcm = null                 // LiveContactMap instance
+    let currentSource = null       // { kind: 'swt'|'sw', swtText?, swFile?, swUrl? } for mode changes
+
+    function isBinaryExt(name) {
+        return /\.(sw|swb)$/i.test(name)
+    }
+
+    function buildConfig(source) {
+        const common = {
+            distanceThreshold: parseInt(thresholdSlider.value),
+            neighborExclusion: parseInt(exclusionSlider.value),
+            contactMode: contactModeSelect.value
+        }
+        if (source.kind === 'swt')       return { ...common, swtText: source.swtText }
+        if (source.swFile)               return { ...common, swFile: source.swFile }
+        if (source.swUrl)                return { ...common, swUrl: source.swUrl }
+        throw new Error('Unknown source')
+    }
 
     // --- Central loading function ---
-    async function loadSWT(swtText) {
+    async function loadSource(source) {
 
         statusEl.textContent = 'Processing...'
-        currentSwtText = swtText
+        currentSource = source
 
         try {
             const t0 = performance.now()
 
-            lcm = new LiveContactMap({
-                swtText,
-                distanceThreshold: parseInt(thresholdSlider.value),
-                neighborExclusion: parseInt(exclusionSlider.value),
-                contactMode: contactModeSelect.value
-            })
+            lcm = new LiveContactMap(buildConfig(source))
 
             await lcm.init()
 
@@ -462,8 +473,12 @@
         if (!file) return
         statusEl.textContent = 'Reading file...'
         try {
-            const swtText = await file.text()
-            await loadSWT(swtText)
+            if (isBinaryExt(file.name)) {
+                await loadSource({ kind: 'sw', swFile: file })
+            } else {
+                const swtText = await file.text()
+                await loadSource({ kind: 'swt', swtText })
+            }
         } catch (err) {
             statusEl.textContent = `Error reading file: ${err.message}`
             console.error(err)
@@ -476,10 +491,14 @@
         if (!path) return
         statusEl.textContent = `Fetching ${path}...`
         try {
-            const response = await fetch(path)
-            if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
-            const swtText = await response.text()
-            await loadSWT(swtText)
+            if (isBinaryExt(path)) {
+                await loadSource({ kind: 'sw', swUrl: path })
+            } else {
+                const response = await fetch(path)
+                if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+                const swtText = await response.text()
+                await loadSource({ kind: 'swt', swtText })
+            }
         } catch (err) {
             statusEl.textContent = `Error loading path: ${err.message}`
             console.error(err)
@@ -497,10 +516,14 @@
         if (!url) return
         statusEl.textContent = `Fetching URL...`
         try {
-            const response = await fetch(url)
-            if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
-            const swtText = await response.text()
-            await loadSWT(swtText)
+            if (isBinaryExt(url)) {
+                await loadSource({ kind: 'sw', swUrl: url })
+            } else {
+                const response = await fetch(url)
+                if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+                const swtText = await response.text()
+                await loadSource({ kind: 'swt', swtText })
+            }
         } catch (err) {
             statusEl.textContent = `Error loading URL: ${err.message}`
             console.error(err)
@@ -542,19 +565,14 @@
     })
 
     contactModeSelect.addEventListener('change', async () => {
-        if (!lcm || !currentSwtText) return
+        if (!lcm || !currentSource) return
 
         // Rebuild with new contact mode
         statusEl.textContent = 'Recomputing...'
 
         const t0 = performance.now()
 
-        lcm = new LiveContactMap({
-            swtText: currentSwtText,
-            distanceThreshold: parseInt(thresholdSlider.value),
-            neighborExclusion: parseInt(exclusionSlider.value),
-            contactMode: contactModeSelect.value
-        })
+        lcm = new LiveContactMap(buildConfig(currentSource))
 
         await lcm.init()
 

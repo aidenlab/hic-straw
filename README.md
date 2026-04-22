@@ -141,6 +141,13 @@ This is designed for [Spacewalk](https://github.com/aidenlab/spacewalk), which v
    pair is in contact (0.0 to 1.0)
 4. **Serve** contact records through the standard HicFile interface
 
+### Supported input formats
+
+- **SWT** (`.swt`) — text ball-and-stick format, see below.
+- **SW / SWB** (`.sw`, `.swb`) — binary HDF5 ball-and-stick format used by Spacewalk.
+  V1 supports SINGLE_POINT files with a single ensemble group and a single genomic region.
+  Pointcloud (MULTI_POINT) files are not yet supported.
+
 ### Input: SWT file format
 
 Spacewalk Text files (`.swt`) describe ball-and-stick models of chromatin fiber. Each file
@@ -179,6 +186,21 @@ const lcm = new LiveContactMap({
     neighborExclusion: 3,     // skip pairs within 3 bins of each other
     contactMode: 'frequency'  // 'frequency' (0-1) or 'contact' (binary 0/1)
 })
+await lcm.init()
+```
+
+**From a binary SW / SWB (HDF5) file** — browser File, remote URL, or Node path:
+
+```javascript
+// Browser — File picker or drag-drop
+const lcm = new LiveContactMap({ swFile: fileObject, distanceThreshold: 500 })
+
+// Remote URL (uses HTTP range requests — no full download required)
+const lcm = new LiveContactMap({ swUrl: 'https://host/data.sw', distanceThreshold: 500 })
+
+// Node
+const lcm = new LiveContactMap({ swPath: 'data/ball-and-stick.sw', distanceThreshold: 500 })
+
 await lcm.init()
 ```
 

@@ -55,5 +55,9 @@
   "bin": {
     "straw": "cli.js"
   },
-  "homepage": "https://github.com/aidenlab/hic-straw#readme"
+  "homepage": "https://github.com/aidenlab/hic-straw#readme",
+  "dependencies": {
+    "hdf5-indexed-reader": "^1.0.1",
+    "node-fetch": "^3.3.2"
+  }
 }

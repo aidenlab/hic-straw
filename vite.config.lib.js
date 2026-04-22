@@ -10,6 +10,13 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
+      // Don't bundle hdf5-indexed-reader (or its transitive deps like node-fetch)
+      // into the library — consumers install it themselves. This avoids dragging
+      // Node-only modules (node:http, node:fs, etc.) into browser builds.
+      external: [
+        /^hdf5-indexed-reader(\/|$)/,
+        'node-fetch',
+      ],
       output: {
         esModule: true,
         exports: 'named',
