@@ -118,6 +118,16 @@ async function readTracesFromSpatialGroup(hdf5, ensembleGroupKey) {
 }
 
 function flatToVertexList(numbers) {
+    if (numbers.length % 3 !== 0) {
+        // Pointcloud .sw files store spatial_position/t_* as flat
+        // [region_id, x, y, z] quadruples, not xyz triples. loadLiveVertices
+        // is ball-and-stick-only (V1); the caller must collapse pointcloud
+        // traces to per-region centroids before handing them to LiveContactMap.
+        throw new Error(
+            `loadLiveVertices: spatial_position/t_* length ${numbers.length} is not a multiple of 3 — ` +
+            `looks like a pointcloud file, which is not yet supported by this path`
+        )
+    }
     const list = new Array(numbers.length / 3)
     for (let i = 0, j = 0; i < numbers.length; i += 3, j++) {
         const x = numbers[i]
