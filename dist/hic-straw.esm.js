@@ -4323,6 +4323,10 @@ async function pe(o, e) {
   return t;
 }
 function me(o) {
+  if (o.length % 3 !== 0)
+    throw new Error(
+      `loadLiveVertices: spatial_position/t_* length ${o.length} is not a multiple of 3 — looks like a pointcloud file, which is not yet supported by this path`
+    );
   const e = new Array(o.length / 3);
   for (let a = 0, i = 0; a < o.length; a += 3, i++) {
     const t = o[a], n = o[a + 1], r = o[a + 2], c = { x: t, y: n, z: r };
