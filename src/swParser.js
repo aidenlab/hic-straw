@@ -49,7 +49,13 @@ async function parseSW({ file, url, path } = {}) {
     }
 
     const { openH5File } = await hdf5ModuleP
-    const hdf5 = await openH5File(file ? { file } : url ? { url } : { path })
+    // Override hdf5-indexed-reader's default fetchSize=2000/maxSize=200000. Those
+    // defaults generate ~100 sequential 2KB range requests to load the embedded
+    // JSON index on a ~12MB file, which on high-latency hosts (Dropbox ~500ms
+    // RTT) turns a 0.6MB open into a ~60s wait. 64KB pages + 4MB LRU fetch the
+    // index in a handful of requests and avoid cache thrash.
+    const source = file ? { file } : url ? { url } : { path }
+    const hdf5 = await openH5File({ ...source, fetchSize: 65536, maxSize: 4_000_000 })
 
     // --- Header ---
     const headerGroup = await hdf5.get('/Header')
