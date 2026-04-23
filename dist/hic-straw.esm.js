@@ -53,7 +53,7 @@ F.Zip.prototype.setPassword = function(o) {
   this.password = o;
 };
 F.Zip.prototype.compress = function() {
-  var o = this.files, e, a, i, t, n, r = 0, c = 0, f, s, h, d, w, u, p, m, I, l, b, z, N, C, x, g, H, L, E, v, y, T;
+  var o = this.files, e, a, i, t, n, r = 0, c = 0, f, s, h, d, w, u, p, m, N, l, b, z, I, C, x, g, H, L, E, v, y, T;
   for (E = 0, v = o.length; E < v; ++E) {
     if (e = o[E], l = e.option.filename ? e.option.filename.length : 0, b = e.option.extraField ? e.option.extraField.length : 0, z = e.option.comment ? e.option.comment.length : 0, !e.compressed)
       switch (e.crc32 = F.CRC32.calc(e.buffer), e.option.compressionMethod) {
@@ -86,7 +86,7 @@ F.Zip.prototype.compress = function() {
     e = o[E], l = e.option.filename ? e.option.filename.length : 0, b = 0, z = e.option.comment ? e.option.comment.length : 0, s = i, a[i++] = F.Zip.LocalFileHeaderSignature[0], a[i++] = F.Zip.LocalFileHeaderSignature[1], a[i++] = F.Zip.LocalFileHeaderSignature[2], a[i++] = F.Zip.LocalFileHeaderSignature[3], a[t++] = F.Zip.FileHeaderSignature[0], a[t++] = F.Zip.FileHeaderSignature[1], a[t++] = F.Zip.FileHeaderSignature[2], a[t++] = F.Zip.FileHeaderSignature[3], h = 20, a[t++] = h & 255, a[t++] = /** @type {Zlib.Zip.OperatingSystem} */
     e.option.os || F.Zip.OperatingSystem.MSDOS, a[i++] = a[t++] = h & 255, a[i++] = a[t++] = h >> 8 & 255, d = 0, (e.option.password || this.password) && (d |= F.Zip.Flags.ENCRYPT), a[i++] = a[t++] = d & 255, a[i++] = a[t++] = d >> 8 & 255, w = /** @type {Zlib.Zip.CompressionMethod} */
     e.option.compressionMethod, a[i++] = a[t++] = w & 255, a[i++] = a[t++] = w >> 8 & 255, u = /** @type {(Date|undefined)} */
-    e.option.date || /* @__PURE__ */ new Date(), a[i++] = a[t++] = (u.getMinutes() & 7) << 5 | (u.getSeconds() / 2 | 0), a[i++] = a[t++] = u.getHours() << 3 | u.getMinutes() >> 3, a[i++] = a[t++] = (u.getMonth() + 1 & 7) << 5 | u.getDate(), a[i++] = a[t++] = (u.getFullYear() - 1980 & 127) << 1 | u.getMonth() + 1 >> 3, p = e.crc32, a[i++] = a[t++] = p & 255, a[i++] = a[t++] = p >> 8 & 255, a[i++] = a[t++] = p >> 16 & 255, a[i++] = a[t++] = p >> 24 & 255, m = e.buffer.length, a[i++] = a[t++] = m & 255, a[i++] = a[t++] = m >> 8 & 255, a[i++] = a[t++] = m >> 16 & 255, a[i++] = a[t++] = m >> 24 & 255, I = e.size, a[i++] = a[t++] = I & 255, a[i++] = a[t++] = I >> 8 & 255, a[i++] = a[t++] = I >> 16 & 255, a[i++] = a[t++] = I >> 24 & 255, a[i++] = a[t++] = l & 255, a[i++] = a[t++] = l >> 8 & 255, a[i++] = a[t++] = b & 255, a[i++] = a[t++] = b >> 8 & 255, a[t++] = z & 255, a[t++] = z >> 8 & 255, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = s & 255, a[t++] = s >> 8 & 255, a[t++] = s >> 16 & 255, a[t++] = s >> 24 & 255, N = e.option.filename, N && (a.set(N, i), a.set(N, t), i += l, t += l), C = e.option.extraField, C && (a.set(C, i), a.set(C, t), i += b, t += b), x = e.option.comment, x && (a.set(x, t), t += z), a.set(e.buffer, i), i += e.buffer.length;
+    e.option.date || /* @__PURE__ */ new Date(), a[i++] = a[t++] = (u.getMinutes() & 7) << 5 | (u.getSeconds() / 2 | 0), a[i++] = a[t++] = u.getHours() << 3 | u.getMinutes() >> 3, a[i++] = a[t++] = (u.getMonth() + 1 & 7) << 5 | u.getDate(), a[i++] = a[t++] = (u.getFullYear() - 1980 & 127) << 1 | u.getMonth() + 1 >> 3, p = e.crc32, a[i++] = a[t++] = p & 255, a[i++] = a[t++] = p >> 8 & 255, a[i++] = a[t++] = p >> 16 & 255, a[i++] = a[t++] = p >> 24 & 255, m = e.buffer.length, a[i++] = a[t++] = m & 255, a[i++] = a[t++] = m >> 8 & 255, a[i++] = a[t++] = m >> 16 & 255, a[i++] = a[t++] = m >> 24 & 255, N = e.size, a[i++] = a[t++] = N & 255, a[i++] = a[t++] = N >> 8 & 255, a[i++] = a[t++] = N >> 16 & 255, a[i++] = a[t++] = N >> 24 & 255, a[i++] = a[t++] = l & 255, a[i++] = a[t++] = l >> 8 & 255, a[i++] = a[t++] = b & 255, a[i++] = a[t++] = b >> 8 & 255, a[t++] = z & 255, a[t++] = z >> 8 & 255, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = 0, a[t++] = s & 255, a[t++] = s >> 8 & 255, a[t++] = s >> 16 & 255, a[t++] = s >> 24 & 255, I = e.option.filename, I && (a.set(I, i), a.set(I, t), i += l, t += l), C = e.option.extraField, C && (a.set(C, i), a.set(C, t), i += b, t += b), x = e.option.comment, x && (a.set(x, t), t += z), a.set(e.buffer, i), i += e.buffer.length;
   return a[n++] = F.Zip.CentralDirectorySignature[0], a[n++] = F.Zip.CentralDirectorySignature[1], a[n++] = F.Zip.CentralDirectorySignature[2], a[n++] = F.Zip.CentralDirectorySignature[3], a[n++] = 0, a[n++] = 0, a[n++] = 0, a[n++] = 0, a[n++] = v & 255, a[n++] = v >> 8 & 255, a[n++] = v & 255, a[n++] = v >> 8 & 255, a[n++] = c & 255, a[n++] = c >> 8 & 255, a[n++] = c >> 16 & 255, a[n++] = c >> 24 & 255, a[n++] = r & 255, a[n++] = r >> 8 & 255, a[n++] = r >> 16 & 255, a[n++] = r >> 24 & 255, z = this.comment ? this.comment.length : 0, a[n++] = z & 255, a[n++] = z >> 8 & 255, this.comment && (a.set(this.comment, n), n += z), a;
 };
 F.Zip.prototype.deflateWithOption = function(o, e) {
@@ -1114,20 +1114,20 @@ F.RawDeflate.prototype.makeFixedHuffmanBlock = function(o, e) {
   return i = e ? 1 : 0, t = F.RawDeflate.CompressionType.FIXED, a.writeBits(i, 1, !0), a.writeBits(t, 2, !0), n = this.lz77(o), this.fixedHuffman(n, a), a.finish();
 };
 F.RawDeflate.prototype.makeDynamicHuffmanBlock = function(o, e) {
-  var a = new F.BitStream(new Uint8Array(this.output.buffer), this.op), i, t, n, r, c, f, s = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], h, d, w, u, p, m, I = new Array(19), l, b, z, N, C;
+  var a = new F.BitStream(new Uint8Array(this.output.buffer), this.op), i, t, n, r, c, f, s = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], h, d, w, u, p, m, N = new Array(19), l, b, z, I, C;
   for (i = e ? 1 : 0, t = F.RawDeflate.CompressionType.DYNAMIC, a.writeBits(i, 1, !0), a.writeBits(t, 2, !0), n = this.lz77(o), h = this.getLengths_(this.freqsLitLen, 15), d = this.getCodesFromLengths_(h), w = this.getLengths_(this.freqsDist, 7), u = this.getCodesFromLengths_(w), r = 286; r > 257 && h[r - 1] === 0; r--)
     ;
   for (c = 30; c > 1 && w[c - 1] === 0; c--)
     ;
-  for (p = this.getTreeSymbols_(r, h, c, w), m = this.getLengths_(p.freqs, 7), N = 0; N < 19; N++)
-    I[N] = m[s[N]];
-  for (f = 19; f > 4 && I[f - 1] === 0; f--)
+  for (p = this.getTreeSymbols_(r, h, c, w), m = this.getLengths_(p.freqs, 7), I = 0; I < 19; I++)
+    N[I] = m[s[I]];
+  for (f = 19; f > 4 && N[f - 1] === 0; f--)
     ;
-  for (l = this.getCodesFromLengths_(m), a.writeBits(r - 257, 5, !0), a.writeBits(c - 1, 5, !0), a.writeBits(f - 4, 4, !0), N = 0; N < f; N++)
-    a.writeBits(I[N], 3, !0);
-  for (N = 0, C = p.codes.length; N < C; N++)
-    if (b = p.codes[N], a.writeBits(l[b], m[b], !0), b >= 16) {
-      switch (N++, b) {
+  for (l = this.getCodesFromLengths_(m), a.writeBits(r - 257, 5, !0), a.writeBits(c - 1, 5, !0), a.writeBits(f - 4, 4, !0), I = 0; I < f; I++)
+    a.writeBits(N[I], 3, !0);
+  for (I = 0, C = p.codes.length; I < C; I++)
+    if (b = p.codes[I], a.writeBits(l[b], m[b], !0), b >= 16) {
+      switch (I++, b) {
         case 16:
           z = 2;
           break;
@@ -1140,7 +1140,7 @@ F.RawDeflate.prototype.makeDynamicHuffmanBlock = function(o, e) {
         default:
           throw "invalid code: " + b;
       }
-      a.writeBits(p.codes[N], z, !0);
+      a.writeBits(p.codes[I], z, !0);
     }
   return this.dynamicHuffman(
     n,
@@ -1348,13 +1348,13 @@ F.RawDeflate.Lz77Match.prototype.toLz77Array = function() {
   return t = F.RawDeflate.Lz77Match.LengthCodeTable[o], a[i++] = t & 65535, a[i++] = t >> 16 & 255, a[i++] = t >> 24, t = this.getDistanceCode_(e), a[i++] = t[0], a[i++] = t[1], a[i++] = t[2], a;
 };
 F.RawDeflate.prototype.lz77 = function(o) {
-  var e, a, i, t, n, r = {}, c = F.RawDeflate.WindowSize, f, s, h, d = new Uint16Array(o.length * 2), w = 0, u = 0, p = new Uint32Array(286), m = new Uint32Array(30), I = this.lazy, l;
+  var e, a, i, t, n, r = {}, c = F.RawDeflate.WindowSize, f, s, h, d = new Uint16Array(o.length * 2), w = 0, u = 0, p = new Uint32Array(286), m = new Uint32Array(30), N = this.lazy, l;
   p[256] = 1;
-  function b(z, N) {
+  function b(z, I) {
     var C = z.toLz77Array(), x, g;
     for (x = 0, g = C.length; x < g; ++x)
       d[w++] = C[x];
-    p[C[0]]++, m[C[3]]++, u = z.length + N - 1, h = null;
+    p[C[0]]++, m[C[3]]++, u = z.length + I - 1, h = null;
   }
   for (e = 0, a = o.length; e < a; ++e) {
     for (n = 0, i = 0, t = F.RawDeflate.Lz77MinLength; i < t && e + i !== a; ++i)
@@ -1370,7 +1370,7 @@ F.RawDeflate.prototype.lz77 = function(o) {
         l = o[e + i], d[w++] = l, ++p[l];
       break;
     }
-    f.length > 0 ? (s = this.searchLongestMatch_(o, e, f), h ? h.length < s.length ? (l = o[e - 1], d[w++] = l, ++p[l], b(s, 0)) : b(h, -1) : s.length < I ? h = s : b(s, 0)) : h ? b(h, -1) : (l = o[e], d[w++] = l, ++p[l]), f.push(e);
+    f.length > 0 ? (s = this.searchLongestMatch_(o, e, f), h ? h.length < s.length ? (l = o[e - 1], d[w++] = l, ++p[l], b(s, 0)) : b(h, -1) : s.length < N ? h = s : b(s, 0)) : h ? b(h, -1) : (l = o[e], d[w++] = l, ++p[l]), f.push(e);
   }
   return d[w++] = 256, p[256]++, this.freqsLitLen = p, this.freqsDist = m, /** @type {!(Uint16Array|Array.<number>)} */
   d.subarray(0, w);
@@ -1434,9 +1434,9 @@ F.RawDeflate.prototype.getLengths_ = function(o, e) {
 };
 F.RawDeflate.prototype.reversePackageMerge_ = function(o, e, a) {
   var i = new Uint16Array(a), t = new Uint8Array(a), n = new Uint8Array(e), r = new Array(a), c = new Array(a), f = new Array(a), s = (1 << a) - e, h = 1 << a - 1, d, w, u, p, m;
-  function I(l) {
+  function N(l) {
     var b = c[l][f[l]];
-    b === e ? (I(l + 1), I(l + 1)) : --n[b], ++f[l];
+    b === e ? (N(l + 1), N(l + 1)) : --n[b], ++f[l];
   }
   for (i[a - 1] = e, w = 0; w < a; ++w)
     s < h ? t[w] = 0 : (t[w] = 1, s -= h), s <<= 1, i[a - 2 - w] = (i[a - 1 - w] / 2 | 0) + e;
@@ -1451,7 +1451,7 @@ F.RawDeflate.prototype.reversePackageMerge_ = function(o, e, a) {
   for (t[a - 1] === 1 && (--n[0], ++f[a - 1]), w = a - 2; w >= 0; --w) {
     for (d = 0, p = 0, m = f[w + 1], u = 0; u < i[w]; u++)
       p = r[w + 1][m] + r[w + 1][m + 1], p > o[d] ? (r[w][u] = p, c[w][u] = e, m += 2) : (r[w][u] = o[d], c[w][u] = d, ++d);
-    f[w] = 0, t[w] === 1 && I(w);
+    f[w] = 0, t[w] === 1 && N(w);
   }
   return n;
 };
@@ -2180,17 +2180,17 @@ class q {
     const t = this.chr1 === this.chr2, n = this.zoom.binSize, r = this.blockBinCount, c = this.blockColumnCount;
     return i < 9 || !t ? f() : s();
     function f() {
-      const h = e.start / n, d = e.end / n, w = a.start / n, u = a.end / n, p = Math.floor(h / r), m = Math.floor((d - 1) / r), I = Math.floor(w / r), l = Math.floor((u - 1) / r), b = [];
-      for (let z = I; z <= l; z++)
-        for (let N = p; N <= m; N++) {
+      const h = e.start / n, d = e.end / n, w = a.start / n, u = a.end / n, p = Math.floor(h / r), m = Math.floor((d - 1) / r), N = Math.floor(w / r), l = Math.floor((u - 1) / r), b = [];
+      for (let z = N; z <= l; z++)
+        for (let I = p; I <= m; I++) {
           let C;
-          t && z < N ? C = N * c + z : C = z * c + N, b.includes(C) || b.push(C);
+          t && z < I ? C = I * c + z : C = z * c + I, b.includes(C) || b.push(C);
         }
       return b;
     }
     function s() {
-      const h = e.start / n, d = e.end / n, w = a.start / n, u = a.end / n, p = Math.floor((h + w) / 2 / r), m = Math.floor((d + u) / 2 / r), I = Math.floor(Math.log2(1 + Math.abs(h - u) / Math.sqrt(2) / r)), l = Math.floor(Math.log2(1 + Math.abs(d - w) / Math.sqrt(2) / r)), z = (d - w) * (h - u) < 0 ? 0 : Math.min(I, l), N = Math.max(I, l), C = [];
-      for (let x = z; x <= N; x++)
+      const h = e.start / n, d = e.end / n, w = a.start / n, u = a.end / n, p = Math.floor((h + w) / 2 / r), m = Math.floor((d + u) / 2 / r), N = Math.floor(Math.log2(1 + Math.abs(h - u) / Math.sqrt(2) / r)), l = Math.floor(Math.log2(1 + Math.abs(d - w) / Math.sqrt(2) / r)), z = (d - w) * (h - u) < 0 ? 0 : Math.min(N, l), I = Math.max(N, l), C = [];
+      for (let x = z; x <= I; x++)
         for (let g = p; g <= m; g++) {
           const H = x * c + g;
           C.push(H);
@@ -3895,25 +3895,25 @@ class ce {
     await this.init();
     const c = this.chromosomeIndexMap[this.getFileChrName(a.chr)], f = this.chromosomeIndexMap[this.getFileChrName(i.chr)];
     if (c > f || c === f && a.start >= i.end) {
-      const N = a;
-      a = i, i = N;
+      const I = a;
+      a = i, i = I;
     }
     const h = await this.getBlocks(a, i, t, n);
     if (!h || h.length === 0)
       return [];
-    const d = [], w = a.start / n, u = a.end / n, p = i.start / n, m = i.end / n, I = Math.floor(w), l = Math.ceil(u), b = Math.floor(p), z = Math.ceil(m);
-    for (let N of h)
-      if (N) {
+    const d = [], w = a.start / n, u = a.end / n, p = i.start / n, m = i.end / n, N = Math.floor(w), l = Math.ceil(u), b = Math.floor(p), z = Math.ceil(m);
+    for (let I of h)
+      if (I) {
         let C, x, g = e && e !== "NONE";
         const H = this.getFileChrName(a.chr), L = this.getFileChrName(i.chr);
         if (g) {
           const E = await this.getNormalizationVector(e, H, t, n), v = H === L ? E : await this.getNormalizationVector(e, L, t, n);
-          E && v ? (C = await E.getValues(I, l), x = await v.getValues(b, z)) : g = !1;
+          E && v ? (C = await E.getValues(N, l), x = await v.getValues(b, z)) : g = !1;
         }
-        for (let E of N.records)
+        for (let E of I.records)
           if (r || E.bin1 >= w && E.bin1 < u && E.bin2 >= p && E.bin2 < m)
             if (g) {
-              const v = E.bin1, y = E.bin2, T = C[v - I] * x[y - b];
+              const v = E.bin1, y = E.bin2, T = C[v - N] * x[y - b];
               if (T !== 0 && !isNaN(T)) {
                 const Z = E.counts / T;
                 d.push(new R(v, y, Z));
@@ -3944,10 +3944,10 @@ class ce {
       const b = n(l, d);
       this.blockCache.has(t, b) ? u.push(this.blockCache.get(t, b)) : p.push(l);
     }
-    const m = p.map((l) => this.readBlock(l, d)), I = await Promise.all(m);
-    for (let l of I)
+    const m = p.map((l) => this.readBlock(l, d)), N = await Promise.all(m);
+    for (let l of N)
       l && this.blockCache.set(t, n(l.blockNumber, d), l);
-    return u.concat(I);
+    return u.concat(N);
   }
   async readBlock(e, a) {
     const i = await a.blockIndex.getBlockIndexEntry(e);
@@ -3965,18 +3965,18 @@ class ce {
       else {
         const h = c.getInt(), d = c.getInt(), w = c.getByte() === 1, u = this.version < 9 ? !1 : c.getByte() == 1, p = this.version < 9 ? !1 : c.getByte() == 1, m = c.getByte();
         if (m === 1) {
-          const I = p ? c.getInt() : c.getShort();
-          for (let l = 0; l < I; l++) {
-            const b = p ? c.getInt() : c.getShort(), z = d + b, N = u ? c.getInt() : c.getShort();
-            for (let C = 0; C < N; C++) {
+          const N = p ? c.getInt() : c.getShort();
+          for (let l = 0; l < N; l++) {
+            const b = p ? c.getInt() : c.getShort(), z = d + b, I = u ? c.getInt() : c.getShort();
+            for (let C = 0; C < I; C++) {
               const x = u ? c.getInt() : c.getShort(), g = h + x, H = w ? c.getFloat() : c.getShort();
               s.push(new R(g, z, H));
             }
           }
         } else if (m == 2) {
-          const I = c.getInt(), l = c.getShort();
-          for (let b = 0; b < I; b++) {
-            const z = Math.floor(b / l), N = b - z * l, C = h + N, x = d + z;
+          const N = c.getInt(), l = c.getShort();
+          for (let b = 0; b < N; b++) {
+            const z = Math.floor(b / l), I = b - z * l, C = h + I, x = d + z;
             if (w) {
               const g = c.getFloat();
               isNaN(g) || s.push(new R(C, x, g));
@@ -4021,8 +4021,8 @@ class ce {
     if (Number.isInteger(a))
       n = a;
     else {
-      const I = this.getFileChrName(a);
-      n = this.chromosomeIndexMap[I];
+      const N = this.getFileChrName(a);
+      n = this.chromosomeIndexMap[N];
     }
     const r = O(e, n, i.toString(), t);
     if (this.normVectorCache.has(r))
@@ -4033,8 +4033,8 @@ class ce {
       return;
     }
     if (await this.isNormalizationValueAvailableAtResolution(e, a, i, t) === !1) {
-      const I = `Normalization option ${e} not available at resolution ${t}. Will use NONE.`;
-      console.log(I), this.alert && this.alert(I);
+      const N = `Normalization option ${e} not available at resolution ${t}. Will use NONE.`;
+      console.log(N), this.alert && this.alert(N);
       return;
     }
     const s = c[r], h = await this.file.read(s.filePosition, 8);
@@ -4129,8 +4129,8 @@ class ce {
     async function f(s, h) {
       let d = { start: s, size: 500 }, w = 0, u = s, p = await i.read(d.start, d.size), m = new D(new DataView(p));
       m.getString(), m.getString(), m.getInt();
-      const I = a < 9 ? m.getInt() : m.getLong();
-      w += m.position + I * (a < 9 ? M : k), d = { start: s + w, size: B }, p = await i.read(d.start, d.size), m = new D(new DataView(p));
+      const N = a < 9 ? m.getInt() : m.getLong();
+      w += m.position + N * (a < 9 ? M : k), d = { start: s + w, size: B }, p = await i.read(d.start, d.size), m = new D(new DataView(p));
       const l = m.getInt();
       return w += B + l * (B + (a < 9 ? M : k)), h--, h === 0 ? u + w : f(u + w, h);
     }
@@ -4241,9 +4241,9 @@ function de(o) {
       continue;
     }
     if (c === null || m.length < 6) continue;
-    const I = m[0], l = parseInt(m[1], 10), b = parseInt(m[2], 10), z = parseFloat(m[3]), N = parseFloat(m[4]), C = parseFloat(m[5]);
-    f === void 0 && (f = I), (s === void 0 || l < s) && (s = l), (h === void 0 || b > h) && (h = b), d === void 0 && (d = b - l);
-    const x = isNaN(z) || isNaN(N) || isNaN(C), g = { x: z, y: N, z: C };
+    const N = m[0], l = parseInt(m[1], 10), b = parseInt(m[2], 10), z = parseFloat(m[3]), I = parseFloat(m[4]), C = parseFloat(m[5]);
+    f === void 0 && (f = N), (s === void 0 || l < s) && (s = l), (h === void 0 || b > h) && (h = b), d === void 0 && (d = b - l);
+    const x = isNaN(z) || isNaN(I) || isNaN(C), g = { x: z, y: I, z: C };
     x && (g.isMissingData = !0), c.push(g);
   }
   if (r.length === 0)
@@ -4335,44 +4335,44 @@ function me(o) {
   return e;
 }
 const be = typeof window < "u" && typeof document < "u", Ne = be ? import("hdf5-indexed-reader/dist/hdf5-indexed-reader.esm.js") : import("hdf5-indexed-reader/dist/hdf5-indexed-reader.node.mjs");
-async function Ie({ file: o, url: e, path: a } = {}) {
+async function ze({ file: o, url: e, path: a } = {}) {
   if (!o && !e && !a)
     throw new Error("parseSW requires one of: file, url, path");
-  const { openH5File: i } = await Ne, t = await i(o ? { file: o } : e ? { url: e } : { path: a }), n = await t.get("/Header");
-  if (!n) throw new Error("SW file missing /Header group");
-  const r = await n.attrs, c = r.genome, f = (r.point_type || "").toString().toLowerCase();
-  if (f && f !== "single_point")
-    throw new Error(`SW point_type "${r.point_type}" is not supported (V1: SINGLE_POINT only)`);
-  const s = (await t.keys).filter((N) => N !== "Header" && N !== "_index");
-  if (s.length === 0)
+  const { openH5File: i } = await Ne, n = await i({ ...o ? { file: o } : e ? { url: e } : { path: a }, fetchSize: 65536, maxSize: 4e6 }), r = await n.get("/Header");
+  if (!r) throw new Error("SW file missing /Header group");
+  const c = await r.attrs, f = c.genome, s = (c.point_type || "").toString().toLowerCase();
+  if (s && s !== "single_point")
+    throw new Error(`SW point_type "${c.point_type}" is not supported (V1: SINGLE_POINT only)`);
+  const h = (await n.keys).filter((C) => C !== "Header" && C !== "_index");
+  if (h.length === 0)
     throw new Error("SW file contains no ensemble group");
-  const h = s[0], d = await t.get(`${h}/genomic_position/regions`);
-  if (!d) throw new Error(`SW file missing ${h}/genomic_position/regions`);
-  const w = await d.value;
-  if (w.length < 3 || w.length % 3 !== 0)
-    throw new Error(`SW regions dataset has invalid length ${w.length}`);
-  const u = String(w[0]);
-  for (let N = 3; N < w.length; N += 3)
-    if (String(w[N]) !== u)
-      throw new Error(`SW file spans multiple chromosomes (${u}, ${w[N]}); V1 supports a single-locus file`);
-  const p = w.length / 3, m = parseInt(w[1], 10), I = parseInt(w[w.length - 1], 10), l = await W({ hdf5: t, ensembleGroupKey: h }), b = l[0].length;
-  if (b !== p)
-    throw new Error(`SW trace length (${b}) does not match region count (${p})`);
-  const z = Math.round((I - m) / b);
+  const d = h[0], w = await n.get(`${d}/genomic_position/regions`);
+  if (!w) throw new Error(`SW file missing ${d}/genomic_position/regions`);
+  const u = await w.value;
+  if (u.length < 3 || u.length % 3 !== 0)
+    throw new Error(`SW regions dataset has invalid length ${u.length}`);
+  const p = String(u[0]);
+  for (let C = 3; C < u.length; C += 3)
+    if (String(u[C]) !== p)
+      throw new Error(`SW file spans multiple chromosomes (${p}, ${u[C]}); V1 supports a single-locus file`);
+  const m = u.length / 3, N = parseInt(u[1], 10), l = parseInt(u[u.length - 1], 10), b = await W({ hdf5: n, ensembleGroupKey: d }), z = b[0].length;
+  if (z !== m)
+    throw new Error(`SW trace length (${z}) does not match region count (${m})`);
+  const I = Math.round((l - N) / z);
   return {
-    sample: r.name || h,
-    genomeId: c,
-    chr: u,
-    genomicStart: m,
-    genomicEnd: I,
-    binSize: z,
-    traceCount: l.length,
-    traceLength: b,
-    traces: l
+    sample: c.name || d,
+    genomeId: f,
+    chr: p,
+    genomicStart: N,
+    genomicEnd: l,
+    binSize: I,
+    traceCount: b.length,
+    traceLength: z,
+    traces: b
   };
 }
 const V = -1;
-function ze(o, e) {
+function Ie(o, e) {
   const a = e, i = new Float64Array(a * a), t = new Uint32Array(a * a);
   for (const c of o)
     for (let f = 0; f < a; f++) {
@@ -4381,8 +4381,8 @@ function ze(o, e) {
         for (let h = f + 1; h < a; h++) {
           const d = c[h];
           if (d.isMissingData) continue;
-          const w = s.x - d.x, u = s.y - d.y, p = s.z - d.z, m = Math.sqrt(w * w + u * u + p * p), I = f * a + h, l = h * a + f;
-          i[I] += m, i[l] += m, t[I] += 1, t[l] += 1;
+          const w = s.x - d.x, u = s.y - d.y, p = s.z - d.z, m = Math.sqrt(w * w + u * u + p * p), N = f * a + h, l = h * a + f;
+          i[N] += m, i[l] += m, t[N] += 1, t[l] += 1;
         }
     }
   const n = new Float32Array(a * a);
@@ -4420,7 +4420,7 @@ function ge(o, e, a, i = {}) {
           if (u - d <= t) continue;
           const p = h[u];
           if (p.isMissingData) continue;
-          const m = w.x - p.x, I = w.y - p.y, l = w.z - p.z, b = Math.sqrt(m * m + I * I + l * l), z = d * n + u;
+          const m = w.x - p.x, N = w.y - p.y, l = w.z - p.z, b = Math.sqrt(m * m + N * N + l * l), z = d * n + u;
           c[z] += 1, b < a && (r[z] += 1);
         }
     }
@@ -4548,7 +4548,7 @@ class ve {
       const s = de(e.swtText);
       a = s.traces, i = e.genomeId || s.genomeId, t = e.chr || s.chr, n = e.genomicStart !== void 0 ? e.genomicStart : s.genomicStart, r = e.genomicEnd !== void 0 ? e.genomicEnd : s.genomicEnd, c = e.binSize || s.binSize, f = s.traceLength;
     } else if (e.swFile || e.swUrl || e.swPath) {
-      const s = await Ie({ file: e.swFile, url: e.swUrl, path: e.swPath });
+      const s = await ze({ file: e.swFile, url: e.swUrl, path: e.swPath });
       a = s.traces, i = e.genomeId || s.genomeId, t = e.chr || s.chr, n = e.genomicStart !== void 0 ? e.genomicStart : s.genomicStart, r = e.genomicEnd !== void 0 ? e.genomicEnd : s.genomicEnd, c = e.binSize || s.binSize, f = s.traceLength, s.sample;
     } else if (e.hdf5 && e.ensembleGroupKey)
       a = await W({ hdf5: e.hdf5, ensembleGroupKey: e.ensembleGroupKey }), i = e.genomeId, t = e.chr, n = e.genomicStart, r = e.genomicEnd, c = e.binSize, f = e.traceLength || a[0].length, e.name;
@@ -4716,7 +4716,7 @@ class ve {
    * @private
    */
   _computeDistances() {
-    const e = ze(this.traces, this.traceLength);
+    const e = Ie(this.traces, this.traceLength);
     this.distanceMatrix = e.distances, this.maxDistance = e.maxDistance;
   }
   /**
