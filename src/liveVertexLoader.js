@@ -1,5 +1,9 @@
 /**
- * Load per-trace vertex lists for a .sw (HDF5, ball-and-stick) file.
+ * Load per-trace vertex lists for a .sw (HDF5) file.
+ *
+ * Works for both ball-and-stick and pointcloud `.sw` files. Pointcloud bakes
+ * store per-region centroids in the same shape as ball-and-stick, so the bake
+ * path is point-type-agnostic.
  *
  * Priority:
  *   1. <ensembleGroupKey>/live_contact_map_vertices — baked fast path.
@@ -7,8 +11,9 @@
  *      One dataset read collapses what would otherwise be N-traces
  *      worth of range requests — critical for remote hosts that
  *      rate-limit (e.g. Dropbox 429).
- *   2. <ensembleGroupKey>/spatial_position/t_<n> — fallback.
- *      Read sequentially to avoid saturating remote hosts.
+ *   2. <ensembleGroupKey>/spatial_position/t_<n> — fallback. Ball-and-stick
+ *      only; legacy pointcloud `.sw` files without a bake will throw at
+ *      flatToVertexList. Read sequentially to avoid saturating remote hosts.
  *
  * Bake format is versioned via Header attr `live_contact_map_vertices_version`.
  * Unknown versions fall through to the t_* fallback.
@@ -120,12 +125,12 @@ async function readTracesFromSpatialGroup(hdf5, ensembleGroupKey) {
 function flatToVertexList(numbers) {
     if (numbers.length % 3 !== 0) {
         // Pointcloud .sw files store spatial_position/t_* as flat
-        // [region_id, x, y, z] quadruples, not xyz triples. loadLiveVertices
-        // is ball-and-stick-only (V1); the caller must collapse pointcloud
-        // traces to per-region centroids before handing them to LiveContactMap.
+        // [region_id, x, y, z] quadruples, not xyz triples. The bake path
+        // handles pointclouds; this fallback only fires for legacy pointcloud
+        // files written before the per-region centroid bake existed.
         throw new Error(
             `loadLiveVertices: spatial_position/t_* length ${numbers.length} is not a multiple of 3 — ` +
-            `looks like a pointcloud file, which is not yet supported by this path`
+            `legacy pointcloud file with no live_contact_map_vertices bake; re-export with current swtool`
         )
     }
     const list = new Array(numbers.length / 3)
