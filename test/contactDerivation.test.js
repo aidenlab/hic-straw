@@ -29,23 +29,37 @@ describe('Contact Derivation', function () {
         it('threshold captures close pairs only', function () {
             // threshold = 6: should capture d(0,1)=3, d(0,2)=4, d(1,2)=5
             const records = deriveContactRecords(distances, 4, 6)
-            assert.equal(records.length, 3)
+            const offDiagonal = records.filter(r => r.bin1 !== r.bin2)
+            assert.equal(offDiagonal.length, 3)
 
-            const keys = records.map(r => r.getKey())
+            const keys = offDiagonal.map(r => r.getKey())
             assert.include(keys, '0_1')
             assert.include(keys, '0_2')
             assert.include(keys, '1_2')
         })
 
         it('all contacts with large threshold', function () {
-            // threshold = 200: should capture all 6 pairs (4 choose 2)
+            // threshold = 200: should capture all 6 off-diagonal pairs (4 choose 2)
             const records = deriveContactRecords(distances, 4, 200)
-            assert.equal(records.length, 6)
+            assert.equal(records.filter(r => r.bin1 !== r.bin2).length, 6)
         })
 
         it('no contacts with zero threshold', function () {
+            // No off-diagonal contacts; the main-diagonal self-contacts remain.
             const records = deriveContactRecords(distances, 4, 0)
-            assert.equal(records.length, 0)
+            assert.equal(records.filter(r => r.bin1 !== r.bin2).length, 0)
+        })
+
+        it('emits a self-contact record for every main-diagonal bin', function () {
+            // The main diagonal is emitted unconditionally — even at threshold 0,
+            // where no off-diagonal pair is in contact — so the map carries a
+            // bright reference diagonal like a real Hi-C map.
+            const records = deriveContactRecords(distances, 4, 0)
+            const diagonal = records.filter(r => r.bin1 === r.bin2)
+            assert.equal(diagonal.length, 4)
+            for (const rec of diagonal) {
+                assert.equal(rec.counts, 1)
+            }
         })
 
         it('binary counts (always 1)', function () {
@@ -53,26 +67,6 @@ describe('Contact Derivation', function () {
             for (const rec of records) {
                 assert.equal(rec.counts, 1)
             }
-        })
-
-        it('neighbor exclusion K=1 removes adjacent pairs', function () {
-            // K=1: skip (0,1), (1,2), (2,3)
-            // Remaining: (0,2), (0,3), (1,3)
-            // With threshold=6: only (0,2) has d=4 < 6
-            const records = deriveContactRecords(distances, 4, 6, {neighborExclusion: 1})
-            assert.equal(records.length, 1)
-            assert.equal(records[0].getKey(), '0_2')
-        })
-
-        it('neighbor exclusion K=2 removes pairs within 2 bins', function () {
-            // K=2: skip |i-j| <= 2
-            // (0,1) j-i=1 skip, (0,2) j-i=2 skip, (0,3) j-i=3 ok
-            // (1,2) j-i=1 skip, (1,3) j-i=2 skip
-            // (2,3) j-i=1 skip
-            // Only (0,3) remains as candidate. d(0,3)=100 < 200, so 1 record
-            const records = deriveContactRecords(distances, 4, 200, {neighborExclusion: 2})
-            assert.equal(records.length, 1)
-            assert.equal(records[0].getKey(), '0_3')
         })
 
         it('skips DISTANCE_UNDEFINED cells', function () {
@@ -84,7 +78,7 @@ describe('Contact Derivation', function () {
             d[3] = 0
 
             const records = deriveContactRecords(d, 2, 100)
-            assert.equal(records.length, 0)
+            assert.equal(records.filter(r => r.bin1 !== r.bin2).length, 0)
         })
 
         it('ContactRecord objects have correct interface', function () {
@@ -102,9 +96,21 @@ describe('Contact Derivation', function () {
         it('single trace frequency equals binary contact', function () {
             // With one trace, frequency is either 0 or 1
             const {contactRecords} = deriveEnsembleContactFrequencies([vertices], 4, 6)
-            assert.equal(contactRecords.length, 3)
-            for (const rec of contactRecords) {
+            const offDiagonal = contactRecords.filter(r => r.bin1 !== r.bin2)
+            assert.equal(offDiagonal.length, 3)
+            for (const rec of offDiagonal) {
                 assert.equal(rec.counts, 1)
+            }
+        })
+
+        it('emits a self-contact record and sets diagonal frequency to 1', function () {
+            // The main diagonal is emitted unconditionally — even at threshold 0.
+            const {contactRecords, contactFrequencies} =
+                deriveEnsembleContactFrequencies([vertices], 4, 0)
+            const diagonal = contactRecords.filter(r => r.bin1 === r.bin2)
+            assert.equal(diagonal.length, 4)
+            for (let i = 0; i < 4; i++) {
+                assert.equal(contactFrequencies[i * 4 + i], 1)
             }
         })
 
@@ -119,8 +125,9 @@ describe('Contact Derivation', function () {
 
             const {contactRecords, contactFrequencies} = deriveEnsembleContactFrequencies(traces, 2, 4)
 
-            assert.equal(contactRecords.length, 1)
-            assert.closeTo(contactRecords[0].counts, 0.5, 0.001)
+            const offDiagonal = contactRecords.filter(r => r.bin1 !== r.bin2)
+            assert.equal(offDiagonal.length, 1)
+            assert.closeTo(offDiagonal[0].counts, 0.5, 0.001)
             assert.closeTo(contactFrequencies[0 * 2 + 1], 0.5, 0.001)
             assert.closeTo(contactFrequencies[1 * 2 + 0], 0.5, 0.001)
         })
@@ -140,19 +147,6 @@ describe('Contact Derivation', function () {
             }
         })
 
-        it('neighbor exclusion works in frequency mode', function () {
-            const traces = [
-                [{x: 0, y: 0, z: 0}, {x: 1, y: 0, z: 0}, {x: 2, y: 0, z: 0}]
-            ]
-
-            // K=1: only (0,2) is a candidate
-            const {contactRecords} = deriveEnsembleContactFrequencies(traces, 3, 100, {neighborExclusion: 1})
-
-            assert.equal(contactRecords.length, 1)
-            assert.equal(contactRecords[0].bin1, 0)
-            assert.equal(contactRecords[0].bin2, 2)
-        })
-
         it('missing data in some traces - frequency based on valid traces only', function () {
             // Trace 0: vertex 0 missing → pair (0,1) invalid for this trace
             // Trace 1: d(0,1) = 3 → in contact at threshold 5
@@ -163,8 +157,9 @@ describe('Contact Derivation', function () {
             ]
 
             const {contactRecords} = deriveEnsembleContactFrequencies(traces, 2, 5)
-            assert.equal(contactRecords.length, 1)
-            assert.closeTo(contactRecords[0].counts, 1.0, 0.001)
+            const offDiagonal = contactRecords.filter(r => r.bin1 !== r.bin2)
+            assert.equal(offDiagonal.length, 1)
+            assert.closeTo(offDiagonal[0].counts, 1.0, 0.001)
         })
 
         it('contactFrequencies matrix is symmetric', function () {

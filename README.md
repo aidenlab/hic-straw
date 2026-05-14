@@ -182,8 +182,7 @@ import LiveContactMap from 'hic-straw/src/liveContactMap.js'
 const swtText = fs.readFileSync('data/ball-and-stick.swt', 'utf-8')
 const lcm = new LiveContactMap({
     swtText: swtText,
-    distanceThreshold: 500,   // 3D distance cutoff for "in contact"
-    neighborExclusion: 3,     // skip pairs within 3 bins of each other
+    distanceThreshold: 500,   // 3D distance cutoff; omit to derive from the data
     contactMode: 'frequency'  // 'frequency' (0-1) or 'contact' (binary 0/1)
 })
 await lcm.init()
@@ -275,7 +274,6 @@ expensive distance matrix:
 ```javascript
 lcm.setDistanceThreshold(300)    // fewer contacts
 lcm.setDistanceThreshold(800)    // more contacts
-lcm.setNeighborExclusion(5)      // exclude pairs within 5 bins (150kb at 30kb resolution)
 ```
 
 #### Accessing the distance matrix
@@ -301,7 +299,6 @@ const swtText = fs.readFileSync('resources/ball-and-stick.swt', 'utf-8')
 const lcm = new LiveContactMap({
     swtText,
     distanceThreshold: 500,
-    neighborExclusion: 3,
     contactMode: 'frequency'
 })
 await lcm.init()
@@ -325,7 +322,7 @@ console.log(`Contact records: ${records.length}`)
 
 A browser-based test page is provided at `examples/live-contact-map.html`. It renders
 both a contact map and a distance map side by side from any `.swt` file, with interactive
-controls for threshold and neighbor exclusion.
+controls for distance threshold and contact mode.
 
 Run `npm run dev` and open the examples dashboard, then click "LiveContactMap" — or navigate
 directly to http://localhost:5173/examples/live-contact-map.html. Load an SWT file using the file picker.

@@ -186,7 +186,7 @@ sequenceDiagram
     participant DM as distanceMatrix
     participant CD as contactDerivation
 
-    App->>LCM: new LiveContactMap({ swtText, distanceThreshold: 200 })
+    App->>LCM: new LiveContactMap({ swtText })
 
     App->>LCM: init()
     LCM->>Parser: parseSWT(swtText)
@@ -211,9 +211,8 @@ import fs from 'fs'
 const swtText = fs.readFileSync('ball-and-stick.swt', 'utf-8')
 const lcm = new LiveContactMap({
     swtText,
-    distanceThreshold: 200,
-    neighborExclusion: 3,
     contactMode: 'frequency'
+    // distanceThreshold omitted → derived from the distance distribution
 })
 await lcm.init()
 
@@ -229,9 +228,8 @@ const records = await lcm.getContactRecords(
 const { distances, maxDistance } = lcm.getDistanceMatrix()
 const frequencies = lcm.getContactFrequencies()
 
-// Adjust parameters without recomputing distances
+// Adjust the threshold without recomputing distances
 lcm.setDistanceThreshold(500)
-lcm.setNeighborExclusion(5)
 ```
 
 ### Key Characteristics
@@ -240,7 +238,7 @@ lcm.setNeighborExclusion(5)
 - **Single chromosome:** SWT data covers one chromosome region
 - **No normalization:** Only `NONE` is supported
 - **In-memory:** All computation happens in memory, no file I/O after initial parse
-- **Dynamic parameters:** Distance threshold and neighbor exclusion can be changed cheaply (recomputes contacts but not distances)
+- **Dynamic parameters:** Distance threshold can be changed cheaply (recomputes contacts but not distances)
 - **Expensive initialization:** Distance matrix computation is O(N^2 * T) where N = bins, T = traces
 
 ---
@@ -281,7 +279,7 @@ sequenceDiagram
 ```javascript
 import Straw, { LiveContactMap } from 'hic-straw'
 
-const lcm = new LiveContactMap({ swtText, distanceThreshold: 200 })
+const lcm = new LiveContactMap({ swtText })
 await lcm.init()
 
 // From here on, same API as a .hic file
@@ -400,7 +398,7 @@ sequenceDiagram
 
 ## Scenario 6: Dynamic Parameter Updates (Juicebox.js)
 
-After a LiveContactMap is loaded in Juicebox, the user can adjust the distance threshold or neighbor exclusion. These changes recompute contacts cheaply (no distance matrix recomputation) and invalidate the tile cache.
+After a LiveContactMap is loaded in Juicebox, the user can adjust the distance threshold. This recomputes contacts cheaply (no distance matrix recomputation) and invalidates the tile cache.
 
 ### Data Flow
 
@@ -433,7 +431,6 @@ sequenceDiagram
 | Aspect | Detail |
 |--------|--------|
 | **Threshold change** | `lcm.setDistanceThreshold(value)` — recomputes contacts, not distances |
-| **Neighbor exclusion change** | `lcm.setNeighborExclusion(value)` — recomputes contacts, not distances |
 | **Cache invalidation** | `browser.repaintMatrix()` clears the image tile cache |
 | **Performance** | Contact derivation is O(N^2 * T); distance computation is O(N^2 * T * 3). Skipping distances saves ~3x |
 
@@ -652,9 +649,15 @@ contact(i, j) = 1 if avg_distance(i,j) < threshold, else 0
 
 **Output:** `counts` values are 0 or 1. Simpler but less nuanced.
 
-### Neighbor Exclusion
+### Main Diagonal
 
-Both modes support `neighborExclusion` — skip pairs where `|i - j| <= k`. This suppresses the trivially bright diagonal caused by sequential polymer connectivity, highlighting biologically meaningful long-range contacts. See [neighbor-exclusion.md](./neighbor-exclusion.md) for the design discussion.
+Both modes emit a `counts = 1` self-contact record for every main-diagonal bin, so the
+map carries a bright reference diagonal like a real Hi-C map. See
+[main-diagonal-rendering.md](./main-diagonal-rendering.md).
+
+A `neighborExclusion` parameter for suppressing the near-diagonal band was implemented and
+later removed — for the visualization use case it solved a non-problem and introduced a
+worse artifact. See [neighbor-exclusion.md](./neighbor-exclusion.md).
 
 ---
 
@@ -730,4 +733,5 @@ Binary format with header, compressed contact blocks, and normalization vectors.
 ## Related Documents
 
 - [3D to Contact Map Strategy](./3d-to-contact-map-strategy.md) — original design discussion
-- [Neighbor Exclusion](./neighbor-exclusion.md) — diagonal suppression design discussion
+- [Neighbor Exclusion](./neighbor-exclusion.md) — near-diagonal suppression: implemented, then removed
+- [Main Diagonal Rendering](./main-diagonal-rendering.md) — the bright reference diagonal
