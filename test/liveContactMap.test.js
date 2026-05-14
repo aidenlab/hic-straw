@@ -13,8 +13,7 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
             const swtText = fs.readFileSync('resources/ball-and-stick.swt', 'utf-8')
             lcm = new LiveContactMap({
                 swtText,
-                distanceThreshold: 500,
-                neighborExclusion: 3
+                distanceThreshold: 500
             })
             await lcm.init()
         })
@@ -150,11 +149,12 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
                 'BP',
                 30000
             )
-            // d < 6: (0,1)=3, (0,2)=4, (1,2)=5 → 3 upper-triangle records
-            // Plus symmetric: total 6 (each pair appears twice, minus diagonal overlap)
-            // Actually: for each record (i,j) with i<j, we get the original plus (j,i)
-            // So: 3 originals + 3 symmetric = 6
-            assert.equal(records.length, 6)
+            // d < 6: (0,1)=3, (0,2)=4, (1,2)=5 → 3 upper-triangle records,
+            // mirrored to 6 (each off-diagonal pair appears twice).
+            // Plus 4 main-diagonal self-contacts (not mirrored) → 10 total.
+            assert.equal(records.length, 10)
+            assert.equal(records.filter(r => r.bin1 !== r.bin2).length, 6)
+            assert.equal(records.filter(r => r.bin1 === r.bin2).length, 4)
         })
 
         it('partial region query filters correctly', async function () {
@@ -166,14 +166,14 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
                 'BP',
                 30000
             )
-            // bin1=0 in [0,1), bin2=0 or 1 in [0,2)
-            // Upper triangle record (0,1): bin1=0 in [0,1), bin2=1 in [0,2) ✓
-            // Symmetric (1,0): bin2=1 NOT in [0,1) for region1, bin1=0 in [0,2) for region2 - need bin2 in x range and bin1 in y range
-            // Actually: symmetric check: rec.bin2=1 in [x1=0, x2=1)? No, 1 >= 1 fails.
-            // So only 1 record
-            assert.equal(records.length, 1)
-            assert.equal(records[0].bin1, 0)
-            assert.equal(records[0].bin2, 1)
+            // x range [0,1), y range [0,2).
+            // Off-diagonal (0,1): bin1=0 in [0,1), bin2=1 in [0,2) ✓
+            // Its mirror (1,0): bin2=1 not in [0,1) ✗
+            // Self-contact (0,0): bin1=0 in [0,1), bin2=0 in [0,2) ✓
+            // So 2 records: (0,0) and (0,1)
+            assert.equal(records.length, 2)
+            const keys = records.map(r => `${r.bin1}_${r.bin2}`).sort()
+            assert.deepEqual(keys, ['0_0', '0_1'])
         })
 
         it('out-of-range query returns empty', async function () {
@@ -303,9 +303,10 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
 
             assert.isAbove(countAt200, countAt6)
 
-            // Decrease to 0 — should get no contacts
+            // Decrease to 0 — no off-diagonal contacts; only the 4 self-contacts remain
             lcm.setDistanceThreshold(0)
-            assert.equal(lcm.contactRecords.length, 0)
+            assert.equal(lcm.contactRecords.length, 4)
+            assert.equal(lcm.contactRecords.filter(r => r.bin1 !== r.bin2).length, 0)
         })
 
         it('does not recompute distance matrix', async function () {
@@ -325,31 +326,6 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
             lcm.setDistanceThreshold(1)
             // Same Float32Array reference — distances were not recomputed
             assert.strictEqual(lcm.distanceMatrix, distBefore)
-        })
-    })
-
-    describe('setNeighborExclusion', function () {
-
-        it('increasing K reduces contacts', async function () {
-            const traces = [
-                [{x: 0, y: 0, z: 0}, {x: 1, y: 0, z: 0}, {x: 2, y: 0, z: 0}, {x: 3, y: 0, z: 0}]
-            ]
-
-            const lcm = new LiveContactMap({
-                traces,
-                genomeId: 'hg38', chr: 'chr1',
-                genomicStart: 0, genomicEnd: 120000, binSize: 30000,
-                distanceThreshold: 100,
-                contactMode: 'contact'
-            })
-            await lcm.init()
-
-            const countK0 = lcm.contactRecords.length
-
-            lcm.setNeighborExclusion(2)
-            const countK2 = lcm.contactRecords.length
-
-            assert.isBelow(countK2, countK0)
         })
     })
 
@@ -391,8 +367,9 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
 
             // Trace 0: d=3 < 4, in contact. Trace 1: d=5 >= 4, not in contact.
             // Frequency = 0.5
-            assert.equal(lcm.contactRecords.length, 1)
-            assert.closeTo(lcm.contactRecords[0].counts, 0.5, 0.001)
+            const offDiagonal = lcm.contactRecords.filter(r => r.bin1 !== r.bin2)
+            assert.equal(offDiagonal.length, 1)
+            assert.closeTo(offDiagonal[0].counts, 0.5, 0.001)
         })
 
         it('getContactFrequencies returns matrix', async function () {

@@ -36,8 +36,38 @@ Compute all pairwise distances (including neighbors), then divide by the expecte
 
 ## Status
 
-**Implemented.** Approach 1 (skip a fixed number of neighbors) was chosen and implemented in `LiveContactMap` and `contactDerivation.js`. The `neighborExclusion` parameter (default 0) skips pairs where `|i - j| <= k`. It can be updated dynamically via `setNeighborExclusion(k)` without recomputing the distance matrix.
+**Implemented, then removed (2026-05-14).**
+
+Approach 1 (skip a fixed number of neighbors) was originally chosen and implemented in
+`LiveContactMap` and `contactDerivation.js`: a `neighborExclusion` parameter (default 0)
+skipped pairs where `|i - j| <= k`, updatable via `setNeighborExclusion(k)`.
+
+It was later removed entirely — parameter, `setNeighborExclusion()`, and the demo slider.
+
+### Why it was removed
+
+The reasoning above frames neighbor exclusion as solving a real problem. It does — but
+for **quantitative/algorithmic analysis** (model fitting, programmatic loop calling,
+matrix statistics), not for **visualization**, which is what `LiveContactMap` actually
+drives. For a human looking at a contact map:
+
+- A bright near-diagonal is not a distortion — it faithfully reports real proximity, and
+  it is the single most universal feature of *every* static Hi-C map. It makes the live
+  map look *more* like Hi-C, not less. Scientists read past it instinctively.
+- Neighbor exclusion is the editorializing step: it hard-deletes data and leaves a
+  carved-out wedge around the diagonal — an artifact with **no static-Hi-C analog at
+  all**, more jarring than the band it removed.
+- The one genuine visualization risk (a very bright near-diagonal compressing the color
+  ramp) is properly addressed by color-scale handling — log scale, percentile clipping —
+  not by deleting data. Juicebox already provides those controls.
+
+So for this product the control solved a non-problem and introduced a worse one. The
+problem analysis above is retained because it remains valid for a *pipeline* use case: if
+quantitative analysis is ever layered on, O/E-style normalization (Approach 3) — which
+preserves the full matrix instead of carving it — would be the place to start, in the
+library, not as a UI control.
 
 ## Related
 
 - [3D to Contact Map Strategy](./3d-to-contact-map-strategy.md) — overall project strategy
+- [Main Diagonal Rendering](./main-diagonal-rendering.md) — the *main* diagonal (separation 0), a separate concern, is rendered as a bright reference line

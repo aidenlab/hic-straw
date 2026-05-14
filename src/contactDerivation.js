@@ -3,7 +3,6 @@
  *
  * Applies a distance threshold to a pairwise distance matrix to produce
  * ContactRecord objects suitable for the hic-straw / Juicebox pipeline.
- * Supports neighbor exclusion to remove trivially proximal diagonal contacts.
  */
 
 import ContactRecord from './contactRecord.js'
@@ -16,20 +15,21 @@ import { DISTANCE_UNDEFINED } from './distanceMatrix.js'
  * @param {Float32Array} distances - N×N distance matrix (row-major)
  * @param {number} traceLength - N
  * @param {number} distanceThreshold - pairs with distance < threshold are contacts
- * @param {object} [options]
- * @param {number} [options.neighborExclusion=0] - skip pairs where |i - j| <= K
- * @returns {ContactRecord[]} Upper-triangle contact records
+ * @returns {ContactRecord[]} Upper-triangle contact records, plus one
+ *   self-contact record (counts = 1) for every main-diagonal bin
  */
-function deriveContactRecords(distances, traceLength, distanceThreshold, options = {}) {
+function deriveContactRecords(distances, traceLength, distanceThreshold) {
 
-    const neighborExclusion = options.neighborExclusion || 0
     const records = []
 
     for (let i = 0; i < traceLength; i++) {
-        for (let j = i + 1; j < traceLength; j++) {
 
-            // Neighbor exclusion: skip pairs too close along the linear genome
-            if (j - i <= neighborExclusion) continue
+        // Main diagonal: a locus is always in contact with itself. Emitted
+        // unconditionally so the synthetic map carries the bright reference
+        // diagonal that real Hi-C maps show. See discussions/main-diagonal-rendering.md.
+        records.push(new ContactRecord(i, i, 1))
+
+        for (let j = i + 1; j < traceLength; j++) {
 
             const dist = distances[i * traceLength + j]
 
@@ -54,13 +54,12 @@ function deriveContactRecords(distances, traceLength, distanceThreshold, options
  * @param {Array<Array<{x: number, y: number, z: number, isMissingData?: boolean}>>} traces
  * @param {number} traceLength - N
  * @param {number} distanceThreshold - distance cutoff for contact
- * @param {object} [options]
- * @param {number} [options.neighborExclusion=0] - skip pairs where |i - j| <= K
  * @returns {{ contactRecords: ContactRecord[], contactFrequencies: Float32Array }}
+ *   contactRecords includes one self-contact (counts = 1) per main-diagonal
+ *   bin; contactFrequencies has 1 on the main diagonal.
  */
-function deriveEnsembleContactFrequencies(traces, traceLength, distanceThreshold, options = {}) {
+function deriveEnsembleContactFrequencies(traces, traceLength, distanceThreshold) {
 
-    const neighborExclusion = options.neighborExclusion || 0
     const N = traceLength
 
     // For each pair, count contacts across traces and total valid traces
@@ -73,8 +72,6 @@ function deriveEnsembleContactFrequencies(traces, traceLength, distanceThreshold
             if (vi.isMissingData) continue
 
             for (let j = i + 1; j < N; j++) {
-
-                if (j - i <= neighborExclusion) continue
 
                 const vj = vertices[j]
                 if (vj.isMissingData) continue
@@ -101,7 +98,13 @@ function deriveEnsembleContactFrequencies(traces, traceLength, distanceThreshold
     const contactRecords = []
 
     for (let i = 0; i < N; i++) {
-        contactFrequencies[i * N + i] = 0  // Diagonal
+
+        // Main diagonal: self-contact frequency is 1 by definition. Emitted
+        // unconditionally so the map carries the bright reference diagonal that
+        // real Hi-C maps show. See discussions/main-diagonal-rendering.md.
+        contactFrequencies[i * N + i] = 1
+        contactRecords.push(new ContactRecord(i, i, 1))
+
         for (let j = i + 1; j < N; j++) {
             const ij = i * N + j
             if (validCount[ij] > 0) {

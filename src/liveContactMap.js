@@ -91,7 +91,6 @@ class LiveContactMap {
      * @param {number} [config.binSize] - Bin size in bp
      * @param {number} [config.traceLength] - Number of bins per trace
      * @param {number} [config.distanceThreshold=200] - Initial distance threshold
-     * @param {number} [config.neighborExclusion=0] - Neighbor bins to exclude
      * @param {string} [config.contactMode='frequency'] - 'contact' or 'frequency'
      * @param {string} [config.name] - Dataset name
      */
@@ -178,7 +177,6 @@ class LiveContactMap {
         this.genomicStart = genomicStart
         this.genomicEnd = genomicEnd
         this.distanceThreshold = config.distanceThreshold !== undefined ? config.distanceThreshold : 200
-        this.neighborExclusion = config.neighborExclusion || 0
         this.contactMode = config.contactMode || 'frequency'
 
         // Bin offset: converts trace-relative indices (0..N-1) to absolute
@@ -393,18 +391,6 @@ class LiveContactMap {
     }
 
     /**
-     * Update the neighbor exclusion parameter and recompute contacts.
-     *
-     * @param {number} k - Number of neighbor bins to exclude
-     */
-    setNeighborExclusion(k) {
-        this.neighborExclusion = k
-        if (this.initialized) {
-            this._deriveContacts()
-        }
-    }
-
-    /**
      * Replace the vertex data entirely (e.g., new ensemble loaded).
      * Recomputes everything: distances and contacts.
      *
@@ -460,20 +446,18 @@ class LiveContactMap {
 
     /**
      * Derive contact records from the distance matrix using the current
-     * threshold and neighbor exclusion settings.
+     * distance threshold.
      * @private
      */
     _deriveContacts() {
 
-        const options = { neighborExclusion: this.neighborExclusion }
         let rawRecords
 
         if (this.contactMode === 'frequency') {
             const result = deriveEnsembleContactFrequencies(
                 this.traces,
                 this.traceLength,
-                this.distanceThreshold,
-                options
+                this.distanceThreshold
             )
             rawRecords = result.contactRecords
             this.contactFrequencies = result.contactFrequencies
@@ -482,8 +466,7 @@ class LiveContactMap {
             rawRecords = deriveContactRecords(
                 this.distanceMatrix,
                 this.traceLength,
-                this.distanceThreshold,
-                options
+                this.distanceThreshold
             )
             this.contactFrequencies = undefined
         }

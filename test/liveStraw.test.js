@@ -12,8 +12,7 @@ describe('Straw with LiveContactMap', { timeout: 10000 }, function () {
         const swtText = fs.readFileSync('resources/ball-and-stick.swt', 'utf-8')
         const lcm = new LiveContactMap({
             swtText,
-            distanceThreshold: 500,
-            neighborExclusion: 3
+            distanceThreshold: 500
         })
         await lcm.init()
 

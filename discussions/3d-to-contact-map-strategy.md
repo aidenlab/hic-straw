@@ -40,7 +40,7 @@ The implementation uses a **distance threshold** with two configurable modes:
 
 The threshold is configurable via `distanceThreshold` (default 200) and can be updated dynamically with `setDistanceThreshold()` without recomputing the expensive distance matrix.
 
-**Neighbor exclusion** is supported to suppress the trivially bright diagonal (sequential bins are always spatially close). Pairs where `|i - j| <= neighborExclusion` are skipped. See [neighbor-exclusion.md](./neighbor-exclusion.md).
+**Near-diagonal handling.** A neighbor-exclusion parameter (skip pairs where `|i - j| <= K`) was once implemented to suppress the trivially bright near-diagonal band, then removed — for the *visualization* use case it solved a non-problem and introduced a worse artifact (a carved-out wedge with no Hi-C analog). See [neighbor-exclusion.md](./neighbor-exclusion.md) for the full rationale. The main diagonal itself is now rendered as a bright reference line; see [main-diagonal-rendering.md](./main-diagonal-rendering.md).
 
 *Other candidates considered but not implemented:* inverse power law, Gaussian, empirically calibrated decay curves.
 
@@ -83,7 +83,7 @@ The following components have been implemented and tested:
 2. **Resolution:** Single resolution derived from SWT bin size (typically 30 kb).
 3. **Normalization:** NONE only — sufficient for synthetic maps.
 4. **Downstream consumers:** Juicebox.js via `HiCDataset` → `Straw` → `LiveContactMap`. Same interface as HicFile.
-5. **Dynamic updates:** Yes. `setDistanceThreshold()` and `setNeighborExclusion()` update contacts without recomputing distances. `updateVertexData()` replaces entire data.
+5. **Dynamic updates:** Yes. `setDistanceThreshold()` updates contacts without recomputing distances. `updateVertexData()` replaces entire data.
 6. **Scale:** O(N²) pairwise computation. Tested with `ball-and-stick.swt` (65 bins × 1277 traces). No spatial indexing yet.
 
 ### Additional features beyond original scope
@@ -139,5 +139,6 @@ chr21 18000000 18030000 ...
 ## Related Documents
 
 - [hic-straw Usage Scenarios](./hic-straw-usage-scenarios.md) — detailed integration guide, Juicebox scenarios, architecture
-- [Neighbor Exclusion](./neighbor-exclusion.md) — diagonal suppression design (implemented as approach 1)
+- [Neighbor Exclusion](./neighbor-exclusion.md) — near-diagonal suppression: implemented, then removed
+- [Main Diagonal Rendering](./main-diagonal-rendering.md) — why the main diagonal is a bright reference line
 - [README](../README.md) — LiveContactMap API and usage examples

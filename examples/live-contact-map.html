@@ -312,11 +312,6 @@
             </div>
 
             <div class="control-row">
-                <label>Neighbor Exclusion (K) <span class="value" id="exclusion-value">0</span></label>
-                <input type="range" id="exclusion-slider" min="0" max="20" value="0" step="1">
-            </div>
-
-            <div class="control-row">
                 <label>Contact Mode</label>
                 <select id="contact-mode">
                     <option value="frequency" selected>Frequency (0-1)</option>
@@ -387,8 +382,6 @@
 
     const thresholdSlider = document.getElementById('threshold-slider')
     const thresholdValue = document.getElementById('threshold-value')
-    const exclusionSlider = document.getElementById('exclusion-slider')
-    const exclusionValue = document.getElementById('exclusion-value')
     const contactModeSelect = document.getElementById('contact-mode')
 
     const contactCanvas = document.getElementById('contact-canvas')
@@ -415,7 +408,6 @@
     function buildConfig(source) {
         const common = {
             distanceThreshold: parseInt(thresholdSlider.value),
-            neighborExclusion: parseInt(exclusionSlider.value),
             contactMode: contactModeSelect.value
         }
         if (source.kind === 'swt')       return { ...common, swtText: source.swtText }
@@ -448,9 +440,6 @@
                 thresholdSlider.value = Math.ceil(maxDist / 2)
                 thresholdValue.textContent = thresholdSlider.value
             }
-
-            // Update exclusion slider max
-            exclusionSlider.max = Math.min(20, lcm.traceLength - 2)
 
             // Show info
             updateInfoPanel()
@@ -550,20 +539,6 @@
         contactTiming.textContent = `Threshold update: ${elapsed}ms`
     })
 
-    exclusionSlider.addEventListener('input', () => {
-        const val = parseInt(exclusionSlider.value)
-        exclusionValue.textContent = val
-        if (!lcm) return
-
-        const t0 = performance.now()
-        lcm.setNeighborExclusion(val)
-        const elapsed = (performance.now() - t0).toFixed(1)
-
-        renderContactMap()
-        updateStatsPanel()
-        contactTiming.textContent = `Exclusion update: ${elapsed}ms`
-    })
-
     contactModeSelect.addEventListener('change', async () => {
         if (!lcm || !currentSource) return
 
@@ -623,7 +598,6 @@
             infoRow('Contact %', `${pct}%`),
             infoRow('Avg frequency', avgCounts),
             infoRow('Threshold', lcm.distanceThreshold),
-            infoRow('Exclusion K', lcm.neighborExclusion),
             infoRow('Mode', lcm.contactMode),
         ].join('')
     }
@@ -676,10 +650,9 @@
             fillScaledPixel(data, size, y, x, scale, 255, 0, 0, alpha)
         }
 
-        // Diagonal line
-        for (let i = 0; i < N; i++) {
-            fillScaledPixel(data, size, i, i, scale, 40, 40, 40, 255)
-        }
+        // The main diagonal is painted by the loop above: LiveContactMap emits
+        // a self-contact record (counts = 1) for every diagonal bin, so it
+        // renders as a bright reference diagonal like a real Hi-C map.
 
         ctx.putImageData(imageData, 0, 0)
 
