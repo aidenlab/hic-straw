@@ -8,7 +8,7 @@
  * cannot distinguish this from a real .hic file.
  *
  * Usage:
- *   const lcm = new LiveContactMap({ swtText, distanceThreshold: 200 })
+ *   const lcm = new LiveContactMap({ swtText })
  *   await lcm.init()
  *   const records = await lcm.getContactRecords('NONE', region1, region2, 'BP', 30000)
  */
@@ -44,6 +44,13 @@ const knownChromosomeSizes = {
         chr21: 48129895, chr22: 51304566, chrX: 155270560, chrY: 59373566
     }
 }
+
+/**
+ * Default target contact density, used to derive a distance threshold when
+ * none is supplied. The threshold is set to this percentile of the pairwise
+ * distance distribution — see LiveContactMap._computeDefaultThreshold().
+ */
+const DEFAULT_CONTACT_DENSITY = 0.35
 
 /**
  * Lightweight Matrix-like object returned by getMatrix().
@@ -90,7 +97,9 @@ class LiveContactMap {
      * @param {number} [config.genomicEnd] - End position in bp
      * @param {number} [config.binSize] - Bin size in bp
      * @param {number} [config.traceLength] - Number of bins per trace
-     * @param {number} [config.distanceThreshold=200] - Initial distance threshold
+     * @param {number} [config.distanceThreshold] - Initial distance threshold.
+     *   If omitted, a data-driven default is derived from the distance
+     *   distribution (see _computeDefaultThreshold).
      * @param {string} [config.contactMode='frequency'] - 'contact' or 'frequency'
      * @param {string} [config.name] - Dataset name
      */
@@ -176,7 +185,9 @@ class LiveContactMap {
         this.binSize = binSize
         this.genomicStart = genomicStart
         this.genomicEnd = genomicEnd
-        this.distanceThreshold = config.distanceThreshold !== undefined ? config.distanceThreshold : 200
+        // Distance threshold: use the configured value if given, otherwise
+        // derive a data-driven default once the distance matrix exists (below).
+        this.distanceThreshold = config.distanceThreshold
         this.contactMode = config.contactMode || 'frequency'
 
         // Bin offset: converts trace-relative indices (0..N-1) to absolute
@@ -248,6 +259,13 @@ class LiveContactMap {
 
         // --- Compute distance matrix ---
         this._computeDistances()
+
+        // --- Derive a data-driven default threshold if none was supplied ---
+        // A fixed threshold is meaningless: 3D coordinates are in arbitrary,
+        // per-dataset units. Derive one from the distance distribution instead.
+        if (this.distanceThreshold === undefined) {
+            this.distanceThreshold = this._computeDefaultThreshold(DEFAULT_CONTACT_DENSITY)
+        }
 
         // --- Derive contact records ---
         this._deriveContacts()
@@ -442,6 +460,42 @@ class LiveContactMap {
         const result = computeEnsembleDistances(this.traces, this.traceLength)
         this.distanceMatrix = result.distances
         this.maxDistance = result.maxDistance
+    }
+
+    /**
+     * Derive a data-driven distance threshold from the distance matrix.
+     *
+     * 3D coordinates are in arbitrary, per-dataset units, so a fixed threshold
+     * is meaningless. Instead, use the `density` percentile of the off-diagonal
+     * pairwise distances: ~`density` fraction of pairs then fall within
+     * threshold. This is exact for contact mode, and a close proxy for the mean
+     * contact frequency in frequency mode, and adapts to any dataset's scale.
+     *
+     * @param {number} density - target contact density in (0, 1)
+     * @returns {number} distance threshold
+     * @private
+     */
+    _computeDefaultThreshold(density) {
+
+        const N = this.traceLength
+        const distances = this.distanceMatrix
+
+        // Upper-triangle, non-missing distances (the i === j diagonal is 0).
+        const samples = []
+        for (let i = 0; i < N; i++) {
+            for (let j = i + 1; j < N; j++) {
+                const d = distances[i * N + j]
+                if (d !== DISTANCE_UNDEFINED) samples.push(d)
+            }
+        }
+
+        if (samples.length === 0) {
+            return this.maxDistance > 0 ? this.maxDistance : 1
+        }
+
+        samples.sort((a, b) => a - b)
+        const index = Math.min(samples.length - 1, Math.floor(density * samples.length))
+        return samples[index]
     }
 
     /**

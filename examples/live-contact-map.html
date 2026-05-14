@@ -405,10 +405,14 @@
         return /\.(sw|swb)$/i.test(name)
     }
 
-    function buildConfig(source) {
+    function buildConfig(source, preserveThreshold = false) {
         const common = {
-            distanceThreshold: parseInt(thresholdSlider.value),
             contactMode: contactModeSelect.value
+        }
+        // A new file always derives a fresh data-driven default. Only a
+        // same-file reload (contact-mode switch) preserves the user's value.
+        if (preserveThreshold && lcm) {
+            common.distanceThreshold = parseInt(thresholdSlider.value)
         }
         if (source.kind === 'swt')       return { ...common, swtText: source.swtText }
         if (source.swFile)               return { ...common, swFile: source.swFile }
@@ -431,15 +435,12 @@
 
             const elapsed = (performance.now() - t0).toFixed(0)
 
-            // Update threshold slider max to 2x the max distance
+            // Size the threshold slider to the data and sync it to the
+            // data-driven default the library just derived.
             const maxDist = lcm.maxDistance
-            thresholdSlider.max = Math.ceil(maxDist * 2)
-
-            // Cap current threshold at maxDist if needed
-            if (parseInt(thresholdSlider.value) > maxDist * 2) {
-                thresholdSlider.value = Math.ceil(maxDist / 2)
-                thresholdValue.textContent = thresholdSlider.value
-            }
+            thresholdSlider.max = Math.max(1, Math.ceil(maxDist * 2))
+            thresholdSlider.value = Math.round(lcm.distanceThreshold)
+            thresholdValue.textContent = thresholdSlider.value
 
             // Show info
             updateInfoPanel()
@@ -547,7 +548,7 @@
 
         const t0 = performance.now()
 
-        lcm = new LiveContactMap(buildConfig(currentSource))
+        lcm = new LiveContactMap(buildConfig(currentSource, true))
 
         await lcm.init()
 

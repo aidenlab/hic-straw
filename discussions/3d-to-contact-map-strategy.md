@@ -38,7 +38,7 @@ The implementation uses a **distance threshold** with two configurable modes:
 - **Contact mode** (`contactMode: 'contact'`): Binary contacts from the ensemble-averaged distance matrix. `counts = 1` if average distance < threshold, else 0.
 - **Frequency mode** (`contactMode: 'frequency'`, default): For each pair, the fraction of traces where distance < threshold. `counts` ranges from 0.0 to 1.0, reflecting ensemble contact probability.
 
-The threshold is configurable via `distanceThreshold` (default 200) and can be updated dynamically with `setDistanceThreshold()` without recomputing the expensive distance matrix.
+The threshold is configurable via `distanceThreshold`. When it is omitted, a data-driven default is derived from the pairwise distance distribution — the 35th percentile of off-diagonal distances, which targets a balanced contact density regardless of the dataset's coordinate units. It can be updated dynamically with `setDistanceThreshold()` without recomputing the expensive distance matrix.
 
 **Near-diagonal handling.** A neighbor-exclusion parameter (skip pairs where `|i - j| <= K`) was once implemented to suppress the trivially bright near-diagonal band, then removed — for the *visualization* use case it solved a non-problem and introduced a worse artifact (a carved-out wedge with no Hi-C analog). See [neighbor-exclusion.md](./neighbor-exclusion.md) for the full rationale. The main diagonal itself is now rendered as a bright reference line; see [main-diagonal-rendering.md](./main-diagonal-rendering.md).
 

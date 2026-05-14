@@ -95,6 +95,32 @@ describe('LiveContactMap', { timeout: 10000 }, function () {
         })
     })
 
+    describe('default distance threshold', function () {
+
+        // Off-diagonal distances for this trace, sorted:
+        //   d(0,1)=3, d(0,2)=4, d(1,2)=5, d(1,3)=97, d(0,3)=100, d(2,3)≈100.08
+        // 6 samples; 35th percentile → index floor(0.35 * 6) = 2 → 5
+        const traces = [
+            [{x: 0, y: 0, z: 0}, {x: 3, y: 0, z: 0}, {x: 0, y: 4, z: 0}, {x: 100, y: 0, z: 0}]
+        ]
+        const baseConfig = {
+            genomeId: 'hg38', chr: 'chr1',
+            genomicStart: 0, genomicEnd: 120000, binSize: 30000
+        }
+
+        it('derives a data-driven threshold when none is configured', async function () {
+            const lcm = new LiveContactMap({ traces, ...baseConfig })
+            await lcm.init()
+            assert.closeTo(lcm.distanceThreshold, 5, 0.001)
+        })
+
+        it('respects an explicitly configured threshold', async function () {
+            const lcm = new LiveContactMap({ traces, ...baseConfig, distanceThreshold: 42 })
+            await lcm.init()
+            assert.equal(lcm.distanceThreshold, 42)
+        })
+    })
+
     describe('getMetaData', function () {
 
         it('returns correct structure', async function () {

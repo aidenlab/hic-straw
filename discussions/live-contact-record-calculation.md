@@ -24,7 +24,7 @@ Contact derivation starts with three things already in hand:
 |-------|--------------------|-------|
 | `traces` | the parsed SWT ensemble | array of traces; each trace is an array of `{x, y, z, isMissingData?}` vertices |
 | `distanceMatrix` | `computeEnsembleDistances()` | `Float32Array`, N×N, ensemble-*averaged* distance per bin pair |
-| `distanceThreshold` | config or `setDistanceThreshold()` | a single number (default 200) |
+| `distanceThreshold` | config, `setDistanceThreshold()`, or a data-driven default | a single number |
 
 Note that we keep **both** the raw traces and the averaged distance matrix. The two
 contact modes use different ones — that is the first fork in the road.

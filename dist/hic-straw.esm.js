@@ -53,7 +53,7 @@ F.Zip.prototype.setPassword = function(o) {
   this.password = o;
 };
 F.Zip.prototype.compress = function() {
-  var o = this.files, e, a, t, i, n, r = 0, s = 0, f, c, h, d, w, u, p, m, N, l, b, z, I, C, x, g, R, L, E, v, y, T;
+  var o = this.files, e, a, t, i, n, r = 0, s = 0, f, c, h, d, w, u, p, m, N, l, b, z, I, C, x, g, R, T, E, v, y, L;
   for (E = 0, v = o.length; E < v; ++E) {
     if (e = o[E], l = e.option.filename ? e.option.filename.length : 0, b = e.option.extraField ? e.option.extraField.length : 0, z = e.option.comment ? e.option.comment.length : 0, !e.compressed)
       switch (e.crc32 = F.CRC32.calc(e.buffer), e.option.compressionMethod) {
@@ -66,13 +66,13 @@ F.Zip.prototype.compress = function() {
           throw new Error("unknown compression method:" + e.option.compressionMethod);
       }
     if (e.option.password !== void 0 || this.password !== void 0) {
-      for (L = this.createEncryptionKey(e.option.password || this.password), g = e.buffer, R = new Uint8Array(g.length + 12), R.set(g, 12), g = R, y = 0; y < 12; ++y)
+      for (T = this.createEncryptionKey(e.option.password || this.password), g = e.buffer, R = new Uint8Array(g.length + 12), R.set(g, 12), g = R, y = 0; y < 12; ++y)
         g[y] = this.encode(
-          L,
+          T,
           E === 11 ? e.crc32 & 255 : Math.random() * 256 | 0
         );
-      for (T = g.length; y < T; ++y)
-        g[y] = this.encode(L, g[y]);
+      for (L = g.length; y < L; ++y)
+        g[y] = this.encode(T, g[y]);
       e.buffer = g;
     }
     r += // local file header
@@ -2165,7 +2165,7 @@ _.prototype.isGreaterThan = function(o) {
 _.prototype.print = function() {
   return "" + this.block + ":" + this.offset;
 };
-class q {
+class j {
   constructor(e, a) {
     this.chr1 = e, this.chr2 = a;
   }
@@ -2199,7 +2199,7 @@ class q {
     }
   }
   static parseMatrixZoomData(e, a, t) {
-    const i = new q(e, a), n = t.getString(), r = t.getInt(), s = t.getFloat(), f = t.getFloat(), c = t.getFloat(), h = t.getFloat(), d = t.getInt();
+    const i = new j(e, a), n = t.getString(), r = t.getInt(), s = t.getFloat(), f = t.getFloat(), c = t.getFloat(), h = t.getFloat(), d = t.getInt();
     i.blockBinCount = t.getInt(), i.blockColumnCount = t.getInt();
     const w = t.getInt();
     i.zoom = { index: r, unit: n, binSize: d }, i.blockIndex = new oe(w, t);
@@ -2277,7 +2277,7 @@ class A {
     let f = t.getInt();
     const c = [];
     for (; f-- > 0; ) {
-      const h = q.parseMatrixZoomData(r, s, t);
+      const h = j.parseMatrixZoomData(r, s, t);
       c.push(h);
     }
     return new A(i, n, c);
@@ -2291,7 +2291,7 @@ class S {
     return "" + this.bin1 + "_" + this.bin2;
   }
 }
-class U {
+class q {
   constructor(e = 10) {
     this.max = e, this.map = /* @__PURE__ */ new Map();
   }
@@ -2313,7 +2313,7 @@ class U {
   }
 }
 const te = 8;
-class j {
+class V {
   constructor(e, a, t, i) {
     this.file = e, this.filePosition = a, this.nValues = t, this.dataType = i, this.cache = void 0;
   }
@@ -2335,7 +2335,7 @@ class j {
     return this.cache.values.slice(t, i);
   }
   getKey() {
-    return j.getKey(this.type, this.chrIdx, this.unit, this.resolution);
+    return V.getKey(this.type, this.chrIdx, this.unit, this.resolution);
   }
   static getNormalizationVectorKey(e, a, t, i) {
     return e + "_" + a + "_" + t + "_" + i;
@@ -3769,10 +3769,10 @@ const P = {
   "4dn-open-data-public.s3.amazonaws.com%2Ffourfront-webprod%2Fwfoutput%2F15e818b8-346b-4f90-a321-b7dd72abb7dc%2F4DNFINFK9D35.hic": "17494323050,22663",
   "4dn-open-data-public.s3.amazonaws.com%2Ffourfront-webprod%2Fwfoutput%2F5501e4db-e6a4-41da-85d4-9114ca5ba28e%2F4DNFIBFXR38K.hic": "17172205445,22663",
   "4dn-open-data-public.s3.amazonaws.com%2Ffourfront-webprod%2Fwfoutput%2F378a1641-5894-475e-8614-bd016e8529d5%2F4DNFIMBPX8Q1.hic": "17880333903,22663"
-}, ie = typeof process < "u" && process.versions != null && process.versions.node != null, ne = -32768, M = 8, k = 4, B = 4, Fe = new ee(100);
+}, ie = typeof process < "u" && process.versions != null && process.versions.node != null, ne = -32768, k = 8, O = 4, B = 4, Fe = new ee(100);
 class ce {
   constructor(e) {
-    if (e.alert && (this.alert = e.alert), this.config = e, this.loadFragData = e.loadFragData, this.fragmentSitesCache = {}, this.normVectorCache = new U(10), this.normalizationTypes = ["NONE"], this.matrixCache = new U(10), this.blockCache = new fe(), this.normVectorIndexPosition = -1, this.normVectorIndexSize = -1, e.file)
+    if (e.alert && (this.alert = e.alert), this.config = e, this.loadFragData = e.loadFragData, this.fragmentSitesCache = {}, this.normVectorCache = new q(10), this.normalizationTypes = ["NONE"], this.matrixCache = new q(10), this.blockCache = new fe(), this.normVectorIndexPosition = -1, this.normVectorIndexSize = -1, e.file)
       this.file = e.file;
     else if (e.blob)
       this.file = new G(e.blob);
@@ -3905,17 +3905,17 @@ class ce {
     for (let I of h)
       if (I) {
         let C, x, g = e && e !== "NONE";
-        const R = this.getFileChrName(a.chr), L = this.getFileChrName(t.chr);
+        const R = this.getFileChrName(a.chr), T = this.getFileChrName(t.chr);
         if (g) {
-          const E = await this.getNormalizationVector(e, R, i, n), v = R === L ? E : await this.getNormalizationVector(e, L, i, n);
+          const E = await this.getNormalizationVector(e, R, i, n), v = R === T ? E : await this.getNormalizationVector(e, T, i, n);
           E && v ? (C = await E.getValues(N, l), x = await v.getValues(b, z)) : g = !1;
         }
         for (let E of I.records)
           if (r || E.bin1 >= w && E.bin1 < u && E.bin2 >= p && E.bin2 < m)
             if (g) {
-              const v = E.bin1, y = E.bin2, T = C[v - N] * x[y - b];
-              if (T !== 0 && !isNaN(T)) {
-                const Z = E.counts / T;
+              const v = E.bin1, y = E.bin2, L = C[v - N] * x[y - b];
+              if (L !== 0 && !isNaN(L)) {
+                const Z = E.counts / L;
                 d.push(new S(v, y, Z));
               }
             } else
@@ -4001,7 +4001,7 @@ class ce {
       const f = this.getFileChrName(a);
       n = this.chromosomeIndexMap[f];
     }
-    const r = O(e, n, t.toString(), i), s = await this.getNormVectorIndex();
+    const r = U(e, n, t.toString(), i), s = await this.getNormVectorIndex();
     return s && s[r];
   }
   async isNormalizationValueAvailableAtResolution(e, a, t, i) {
@@ -4012,7 +4012,7 @@ class ce {
       const c = this.getFileChrName(a);
       n = this.chromosomeIndexMap[c];
     }
-    const r = await this.getNormVectorIndex(), s = O(e, n, t.toString(), i);
+    const r = await this.getNormVectorIndex(), s = U(e, n, t.toString(), i);
     return r[s] !== void 0;
   }
   async getNormalizationVector(e, a, t, i) {
@@ -4024,7 +4024,7 @@ class ce {
       const N = this.getFileChrName(a);
       n = this.chromosomeIndexMap[N];
     }
-    const r = O(e, n, t.toString(), i);
+    const r = U(e, n, t.toString(), i);
     if (this.normVectorCache.has(r))
       return this.normVectorCache.get(r);
     const s = await this.getNormVectorIndex();
@@ -4040,7 +4040,7 @@ class ce {
     const c = s[r], h = await this.file.read(c.filePosition, 8);
     if (!h)
       return;
-    const d = new D(new DataView(h)), w = this.version < 9 ? d.getInt() : d.getLong(), u = this.version < 9 ? M : k, p = this.version < 9 ? c.filePosition + 4 : c.filePosition + 8, m = new j(this.file, p, w, u);
+    const d = new D(new DataView(h)), w = this.version < 9 ? d.getInt() : d.getLong(), u = this.version < 9 ? k : O, p = this.version < 9 ? c.filePosition + 4 : c.filePosition + 8, m = new V(this.file, p, w, u);
     return this.normVectorCache.set(r, m), m;
   }
   async getNormVectorIndex() {
@@ -4130,9 +4130,9 @@ class ce {
       let d = { start: c, size: 500 }, w = 0, u = c, p = await t.read(d.start, d.size), m = new D(new DataView(p));
       m.getString(), m.getString(), m.getInt();
       const N = a < 9 ? m.getInt() : m.getLong();
-      w += m.position + N * (a < 9 ? M : k), d = { start: c + w, size: B }, p = await t.read(d.start, d.size), m = new D(new DataView(p));
+      w += m.position + N * (a < 9 ? k : O), d = { start: c + w, size: B }, p = await t.read(d.start, d.size), m = new D(new DataView(p));
       const l = m.getInt();
-      return w += B + l * (B + (a < 9 ? M : k)), h--, h === 0 ? u + w : f(u + w, h);
+      return w += B + l * (B + (a < 9 ? k : O)), h--, h === 0 ? u + w : f(u + w, h);
     }
   }
   getZoomIndexForBinSize(e, a) {
@@ -4171,7 +4171,7 @@ class ce {
   // }
   //
 }
-function O(o, e, a, t) {
+function U(o, e, a, t) {
   return o + "_" + e + "_" + a + "_" + t;
 }
 function se(o) {
@@ -4184,7 +4184,7 @@ class re {
 }
 class fe {
   constructor() {
-    this.resolution = void 0, this.map = new U(6);
+    this.resolution = void 0, this.map = new q(6);
   }
   set(e, a, t) {
     this.resolution !== e && this.map.clear(), this.resolution = e, this.map.set(a, t);
@@ -4196,7 +4196,7 @@ class fe {
     return this.resolution === e && this.map.has(a);
   }
 }
-class Ee {
+class ve {
   constructor(e) {
     this.config = e, e.liveContactMap ? this.hicFile = e.liveContactMap : this.hicFile = new ce(e);
   }
@@ -4371,7 +4371,7 @@ async function Ie({ file: o, url: e, path: a } = {}) {
     traces: b
   };
 }
-const V = -1;
+const M = -1;
 function ze(o, e) {
   const a = e, t = new Float64Array(a * a), i = new Uint32Array(a * a);
   for (const s of o)
@@ -4386,7 +4386,7 @@ function ze(o, e) {
         }
     }
   const n = new Float32Array(a * a);
-  n.fill(V);
+  n.fill(M);
   let r = 0;
   for (let s = 0; s < a; s++) {
     n[s * a + s] = 0;
@@ -4406,7 +4406,7 @@ function Ce(o, e, a) {
     t.push(new S(i, i, 1));
     for (let n = i + 1; n < e; n++) {
       const r = o[i * e + n];
-      r !== V && r < a && t.push(new S(i, n, 1));
+      r !== M && r < a && t.push(new S(i, n, 1));
     }
   }
   return t;
@@ -4425,7 +4425,7 @@ function ge(o, e, a) {
         }
     }
   const r = new Float32Array(t * t);
-  r.fill(V);
+  r.fill(M);
   const s = [];
   for (let f = 0; f < t; f++) {
     r[f * t + f] = 1, s.push(new S(f, f, 1));
@@ -4492,8 +4492,8 @@ const De = {
     chrX: 155270560,
     chrY: 59373566
   }
-};
-class xe {
+}, xe = 0.35;
+class Ee {
   constructor(e, a, t) {
     this.chr1 = e, this.chr2 = a, this._zoomData = t;
   }
@@ -4507,7 +4507,7 @@ class xe {
     return 0;
   }
 }
-class ve {
+class ye {
   /**
    * @param {object} config
    * @param {string} [config.swtText] - Raw SWT text to parse (option A)
@@ -4525,7 +4525,9 @@ class ve {
    * @param {number} [config.genomicEnd] - End position in bp
    * @param {number} [config.binSize] - Bin size in bp
    * @param {number} [config.traceLength] - Number of bins per trace
-   * @param {number} [config.distanceThreshold=200] - Initial distance threshold
+   * @param {number} [config.distanceThreshold] - Initial distance threshold.
+   *   If omitted, a data-driven default is derived from the distance
+   *   distribution (see _computeDefaultThreshold).
    * @param {string} [config.contactMode='frequency'] - 'contact' or 'frequency'
    * @param {string} [config.name] - Dataset name
    */
@@ -4558,7 +4560,7 @@ class ve {
       a = e.traces, t = e.genomeId, i = e.chr, n = e.genomicStart, r = e.genomicEnd, s = e.binSize, f = e.traceLength || a[0].length, e.name;
     else
       throw new Error("LiveContactMap requires swtText, swFile/swUrl/swPath, hdf5+ensembleGroupKey, parsedData, or traces in config");
-    if (this.traces = a, this.traceLength = f, this.binSize = s, this.genomicStart = n, this.genomicEnd = r, this.distanceThreshold = e.distanceThreshold !== void 0 ? e.distanceThreshold : 200, this.contactMode = e.contactMode || "frequency", this.binOffset = Math.floor(n / s), this.genomeId = t, this.version = 0, e.chromosomes)
+    if (this.traces = a, this.traceLength = f, this.binSize = s, this.genomicStart = n, this.genomicEnd = r, this.distanceThreshold = e.distanceThreshold, this.contactMode = e.contactMode || "frequency", this.binOffset = Math.floor(n / s), this.genomeId = t, this.version = 0, e.chromosomes)
       this.chromosomes = e.chromosomes;
     else {
       let c;
@@ -4579,7 +4581,7 @@ class ve {
       genome: this.genomeId,
       chromosomes: this.chromosomes,
       resolutions: this.bpResolutions
-    }, this._computeDistances(), this._deriveContacts(), this.initialized = !0;
+    }, this._computeDistances(), this.distanceThreshold === void 0 && (this.distanceThreshold = this._computeDefaultThreshold(xe)), this._deriveContacts(), this.initialized = !0;
   }
   /**
    * @returns {Promise<{version: number, genome: string, chromosomes: Array, resolutions: Array}>}
@@ -4631,7 +4633,7 @@ class ve {
       occupiedCellCount: this.contactRecords.length,
       percent95: 0
     };
-    return new xe(t, i, f);
+    return new Ee(t, i, f);
   }
   /**
    * @returns {Promise<boolean>} Always false — live maps don't support normalization vectors
@@ -4711,6 +4713,32 @@ class ve {
     this.distanceMatrix = e.distances, this.maxDistance = e.maxDistance;
   }
   /**
+   * Derive a data-driven distance threshold from the distance matrix.
+   *
+   * 3D coordinates are in arbitrary, per-dataset units, so a fixed threshold
+   * is meaningless. Instead, use the `density` percentile of the off-diagonal
+   * pairwise distances: ~`density` fraction of pairs then fall within
+   * threshold. This is exact for contact mode, and a close proxy for the mean
+   * contact frequency in frequency mode, and adapts to any dataset's scale.
+   *
+   * @param {number} density - target contact density in (0, 1)
+   * @returns {number} distance threshold
+   * @private
+   */
+  _computeDefaultThreshold(e) {
+    const a = this.traceLength, t = this.distanceMatrix, i = [];
+    for (let r = 0; r < a; r++)
+      for (let s = r + 1; s < a; s++) {
+        const f = t[r * a + s];
+        f !== M && i.push(f);
+      }
+    if (i.length === 0)
+      return this.maxDistance > 0 ? this.maxDistance : 1;
+    i.sort((r, s) => r - s);
+    const n = Math.min(i.length - 1, Math.floor(e * i.length));
+    return i[n];
+  }
+  /**
    * Derive contact records from the distance matrix using the current
    * distance threshold.
    * @private
@@ -4737,7 +4765,7 @@ class ve {
   }
 }
 export {
-  ve as LiveContactMap,
-  Ee as default
+  ye as LiveContactMap,
+  ve as default
 };
 //# sourceMappingURL=hic-straw.esm.js.map

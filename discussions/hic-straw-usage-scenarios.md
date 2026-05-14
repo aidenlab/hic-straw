@@ -186,7 +186,7 @@ sequenceDiagram
     participant DM as distanceMatrix
     participant CD as contactDerivation
 
-    App->>LCM: new LiveContactMap({ swtText, distanceThreshold: 200 })
+    App->>LCM: new LiveContactMap({ swtText })
 
     App->>LCM: init()
     LCM->>Parser: parseSWT(swtText)
@@ -211,8 +211,8 @@ import fs from 'fs'
 const swtText = fs.readFileSync('ball-and-stick.swt', 'utf-8')
 const lcm = new LiveContactMap({
     swtText,
-    distanceThreshold: 200,
     contactMode: 'frequency'
+    // distanceThreshold omitted → derived from the distance distribution
 })
 await lcm.init()
 
@@ -279,7 +279,7 @@ sequenceDiagram
 ```javascript
 import Straw, { LiveContactMap } from 'hic-straw'
 
-const lcm = new LiveContactMap({ swtText, distanceThreshold: 200 })
+const lcm = new LiveContactMap({ swtText })
 await lcm.init()
 
 // From here on, same API as a .hic file
