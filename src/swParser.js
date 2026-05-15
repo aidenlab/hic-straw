@@ -15,15 +15,7 @@
  */
 
 import { loadLiveVertices } from './liveVertexLoader.js'
-
-// hdf5-indexed-reader ships no `main`/`exports` field, so bundlers can't resolve the
-// bare import. Point at the explicit dist file for each environment. Detect the
-// browser positively — Vite's dev server sometimes shims `process`, so a Node-side
-// check would false-positive and try to pull in node-fetch.
-const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined'
-const hdf5ModuleP = isBrowser
-    ? import('hdf5-indexed-reader/dist/hdf5-indexed-reader.esm.js')
-    : import('hdf5-indexed-reader/dist/hdf5-indexed-reader.node.mjs')
+import { openH5File } from 'hdf5-indexed-reader'
 
 /**
  * @param {object} source - Exactly one of file, url, or path must be provided.
@@ -48,7 +40,6 @@ async function parseSW({ file, url, path } = {}) {
         throw new Error('parseSW requires one of: file, url, path')
     }
 
-    const { openH5File } = await hdf5ModuleP
     // Override hdf5-indexed-reader's default fetchSize=2000/maxSize=200000. Those
     // defaults generate ~100 sequential 2KB range requests to load the embedded
     // JSON index on a ~12MB file, which on high-latency hosts (Dropbox ~500ms

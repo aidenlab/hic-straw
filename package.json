@@ -1,6 +1,6 @@
 {
   "name": "hic-straw",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Utilities for reading .hic contact matrix files",
   "type": "module",
   "main": "dist/hic-straw.cjs.js",
@@ -57,7 +57,7 @@
   },
   "homepage": "https://github.com/aidenlab/hic-straw#readme",
   "dependencies": {
-    "hdf5-indexed-reader": "^1.0.1",
+    "hdf5-indexed-reader": "github:aidenlab/hdf5-indexed-reader#v1.0.3",
     "node-fetch": "^3.3.2"
   }
 }
