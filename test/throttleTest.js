@@ -9,7 +9,9 @@ describe('ThrottledFile', function () {
 
     it('test read range', async function () {
 
-        const url = "https://s3.amazonaws.com/igv.org.test/data/BufferedReaderTest.bin"
+        // Was https://s3.amazonaws.com/igv.org.test/data/BufferedReaderTest.bin (retired).
+        // Same fixture, now vendored in the igv.js repo (pinned to a release tag).
+        const url = "https://raw.githubusercontent.com/igvteam/igv.js/v3.7.0/test/data/misc/BufferedReaderTest.bin"
 
         const limiter = new RateLimiter(100)
         const file = new ThrottledFile(new RemoteFile({url: url}), limiter)

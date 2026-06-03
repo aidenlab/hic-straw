@@ -82,36 +82,39 @@ describe('Straw', function () {
         assert.equal(contactRecords.length, 70)
     })
 
+    // Remote test data: test_chr22.hic (v8, hg19) served from the igv-data repo.
+    // The former intra_nofrag_30.hic fixtures (igv.org.test / igv.broadinstitute.org)
+    // were retired upstream and are no longer reachable.
     it('remote file contact records', async function () {
 
         const straw = new Straw({
-            "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic",
-            "nvi": "863389571,18679"
+            "url": "https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/data/test/hic/test_chr22.hic",
+            "nvi": "1720269,751"
         })
 
         const contactRecords = await straw.getContactRecords(
             "KR",
-            {chr: "8", start: 48700000, end: 48900000},
-            {chr: "8", start: 48700000, end: 48900000},
+            {chr: "22", start: 50000000, end: 100000000},
+            {chr: "22", start: 50000000, end: 100000000},
             "BP",
-            10000
+            100000
         )
 
-        assert.equal(contactRecords.length, 210)  // Earlier versions contained 110 duplicates
+        assert.equal(contactRecords.length, 70)
 
     }, 100000)
 
-    it('Version 7 file', async function () {
+    it('Version 8 file', async function () {
 
         const straw = new Straw({
-            "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic"
+            "url": "https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/data/test/hic/test_chr22.hic"
         })
         const contactRecords = await straw.getContactRecords(
             "NONE",
-            {chr: "1", start: 0, end: 1000000},
-            {chr: "1", start: 0, end: 1000000},
+            {chr: "22", start: 50000000, end: 100000000},
+            {chr: "22", start: 50000000, end: 100000000},
             "BP",
-            250000
+            100000
         )
 
         assert.ok(contactRecords.length > 0)
@@ -121,7 +124,7 @@ describe('Straw', function () {
     it('norm vectors', async function () {
 
         const straw = new Straw({
-            "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic"
+            "url": "https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/data/test/hic/test_chr22.hic"
         })
         const normOptions = await straw.getNormalizationOptions();
         assert.equal(normOptions.length, 4)
@@ -130,8 +133,8 @@ describe('Straw', function () {
     it('norm vectors - with NVI', async function () {
 
         const straw = new Straw({
-            "url": "https://s3.amazonaws.com/igv.org.test/data/hic/intra_nofrag_30.hic",
-            "nvi": "863389571,18679"
+            "url": "https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/data/test/hic/test_chr22.hic",
+            "nvi": "1720269,751"
         })
         const normOptions = await straw.getNormalizationOptions();
         assert.equal(normOptions.length, 4)
