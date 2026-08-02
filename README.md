@@ -28,6 +28,62 @@ Arguments
 * binSize -- size of each bin in base pair or fragment units.  Bins are square
 
 
+## Configuration
+
+The object passed to `new Straw({...})` names the file to read — `url`, `file`, or
+`blob` — and may carry the following optional properties. Everything here applies
+to remote (URL) reads only.
+
+| Property | Type | Purpose |
+| --- | --- | --- |
+| `headers` | object | Extra request headers. Not modified; `Range` is added to a copy per read. |
+| `oauthToken` | string, or a function returning one (or a promise for one) | Sent as `Authorization: Bearer …`. |
+| `mapUrl` | `(url: string) => string` | Rewrites the URL before it is fetched. See below. |
+
+### mapUrl
+
+Dropbox share links and NCBI `ftp://` URLs are always rewritten into a form that
+supports byte-range GETs. `mapUrl` runs **after** those built-in rules and cannot
+switch them off:
+
+```javascript
+const straw = new Straw({
+    url: 'https://www.encodeproject.org/files/ENCFF464WXY/@@download/ENCFF464WXY.hic',
+    mapUrl: url => url.replace('https://www.encodeproject.org', 'http://localhost:9000/encode')
+})
+```
+
+It must be synchronous and pure — URL in, URL out. It cannot set headers, inspect
+responses, or alter Range semantics.
+
+`mapUrl` exists for **development**: it lets you route reads through a local proxy
+when a host refuses requests from `localhost`, without patching global `fetch`. It
+is not intended as a production routing mechanism. Any proxy it points at must
+forward the `Range` request header and return the upstream `206` and
+`Content-Range` unchanged, or every read will be silently wrong.
+
+### Read errors
+
+A response with status `>= 400` rejects with an `Error` carrying:
+
+* `code` — the HTTP status
+* `url` — the URL actually fetched, after mapping
+* `headers` — the response `Headers`
+
+In a browser, `headers` contains only the CORS-safelisted headers plus whatever
+the server names in `Access-Control-Expose-Headers`. All three are absent when the
+failure precedes a response, so read defensively:
+
+```javascript
+try {
+    await straw.getMetaData()
+} catch (e) {
+    if (e.headers?.get('x-amzn-waf-action') === 'captcha') {
+        // the host is challenging automated requests; e.code is likely to be misleading
+    }
+}
+```
+
 ## Examples
 
 ### Development

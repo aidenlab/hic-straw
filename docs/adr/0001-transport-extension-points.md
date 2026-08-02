@@ -2,6 +2,9 @@
 
 **Status:** Accepted
 **Date:** 2026-08-01
+**Amended:** 2026-08-02 — see *Amendment* at the end. `mapUrl` composes with the
+default rules rather than replacing them, and is scoped to development. Read the
+amendment before the decision below.
 
 ## Context
 
@@ -76,6 +79,59 @@ Interpretation belongs to the consumer.
   supplies `mapUrl` also inherits responsibility for the Dropbox and NCBI
   rewrites if their URLs need them. This is the simpler contract; composition can
   be added later without breaking callers.
+
+## Amendment — 2026-08-02
+
+Three things changed before implementation. Nothing had been built on the
+original, so this ADR is amended in place rather than superseded.
+
+**1. `mapUrl` composes; it does not replace.**
+
+```js
+const mapped = defaultMapUrl(args.path || args.url)
+this.url = this.config.mapUrl ? this.config.mapUrl(mapped) : mapped
+```
+
+The original wording made a consumer who supplies `mapUrl` silently inherit
+responsibility for the Dropbox and NCBI rewrites. A consumer adding one proxy
+route would have switched off two rules it had never heard of, and the resulting
+bug — a pasted Dropbox link fetching an HTML preview page and failing the header
+parse — appears and disappears with the proxy config. Paste-fixing is hic-straw's
+own knowledge of what a fetchable URL looks like and stays unconditional. The
+order matters: normalize the paste first, then route, so a consumer rule sees the
+host the bytes actually come from.
+
+The original claim that composition "can be added later without breaking callers"
+was wrong in both directions, which is why this is settled now rather than later.
+
+**2. `mapUrl` is a development affordance.**
+
+In production every consumer runs on an allowlisted origin and reaches ENCODE
+directly; it is `localhost` that gets challenged. `mapUrl` therefore exists so
+that development against an origin-restricted host does not require patching
+global `fetch`. It is not a production routing mechanism and should not grow into
+one. It earns its place as a public config key because hic-straw is the single
+chokepoint every read passes through, while a consumer's URL entry points — file
+picker, paste, query param, restored session — are many, and two projects
+(juicebox.js, Spacewalk) would otherwise each reimplement the same rewrite at all
+of them.
+
+**3. Response detail, verified and widened.**
+
+`X-Amzn-Waf-Action` is genuinely readable from JavaScript — confirmed against a
+live challenge response, which sets `Access-Control-Expose-Headers:
+x-amzn-waf-action`. Without that, a cross-origin `fetch` would have filtered the
+header out and this extension point would not have solved its motivating case.
+
+Two further findings widened the change. `statusText` is empty over HTTP/2, so
+every failure was throwing `Error("")` — the message is now built from the status
+and the URL. And the `console.error` that stood beside the throw fired on the
+`416` that `hicFile.js` treats as the normal "file has no norm vectors" path, so
+it is gone; a library reports by throwing.
+
+Released as **v4.0.0** — a new config key would have been a feature (v3.1.0), but
+this work ships alongside the removal of `config.apiKey` (issue #53), and
+removing a public config key is breaking.
 
 ## Reversal
 

@@ -23,7 +23,7 @@ No linter or formatter is configured.
 ## Testing
 
 - **Runner:** Vitest 3.0.0 with Chai assertions
-- **Config:** `vitest.config.js` — includes `test/**/*.test.js` plus `testBufferedFile.js` and `throttleTest.js`; excludes `test/old/**`
+- **Config:** `vitest.config.js` — includes `test/**/*.test.js` plus `testBufferedFile.js`; excludes `test/old/**`
 - **Timeouts:** 10s per test, 30s for hooks
 - **Test data:** `.hic` files in `test/data/`, SWT file in `resources/ball-and-stick.swt`
 - **CI:** GitHub Actions runs tests on Node 18.x and 20.x (`.github/workflows/ci.yml`)
@@ -49,7 +49,7 @@ Straw (facade)
 - **`src/swtParser.js`** — Parses Spacewalk Text (.swt) format into structured trace data.
 - **`src/distanceMatrix.js`** — Pairwise Euclidean distance computation (single trace and ensemble-averaged).
 - **`src/contactDerivation.js`** — Derives ContactRecord arrays from distance matrices via threshold (binary or frequency mode).
-- **`src/io/`** — I/O abstraction layer: `RemoteFile` (HTTP range requests), `NodeLocalFile` (Node fs), `BrowserLocalFile` (Blob API), `BufferedFile` (buffering wrapper), `ThrottledFile`/`RateLimiter` (rate limiting for Google Drive etc.).
+- **`src/io/`** — I/O abstraction layer: `RemoteFile` (HTTP range requests), `NodeLocalFile` (Node fs), `BrowserLocalFile` (Blob API), `BufferedFile` (buffering wrapper).
 - **`cli.js`** — CLI entry point (`straw` command) for metadata, normalization, and contact record extraction.
 
 ### Data Flow

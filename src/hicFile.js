@@ -1,8 +1,6 @@
 import Zlib from "./vendor/zlib_and_gzip.js";
 import BrowserLocalFile from './io/browserLocalFile.js';
 import RemoteFile from './io/remoteFile.js';
-import ThrottledFile from './io/throttledFile.js';
-import RateLimiter from './io/rateLimiter.js';
 import BufferedFile from './io/bufferedFile.js';
 import BinaryParser from './binary.js';
 import Matrix from './matrix.js';
@@ -17,7 +15,6 @@ const DOUBLE = 8;
 const FLOAT = 4;
 const LONG = 8;
 const INT = 4;
-const GoogleRateLimiter = new RateLimiter(100);
 
 
 class HicFile {
@@ -48,13 +45,7 @@ class HicFile {
             this.url = args.url || this.path;
             this.remote = true;
 
-            // Google drive must be rate limited.  Perhaps all remote files should be rate limited?
-            const remoteFile = new RemoteFile(args);
-            if (isGoogleDrive(this.url)) {
-                this.file = new ThrottledFile(remoteFile, GoogleRateLimiter);
-            } else {
-                this.file = remoteFile;
-            }
+            this.file = new RemoteFile(args);
         } else if (args.path) {
             // path argument, assumed local file
             throw Error(`path property is deprecated, use NodeLocalFile`);
@@ -885,10 +876,6 @@ class HicFile {
 
 function getNormalizationVectorKey(type, chrIdx, unit, resolution) {
     return type + "_" + chrIdx + "_" + unit + "_" + resolution;
-}
-
-function isGoogleDrive(url) {
-    return url.indexOf("drive.google.com") >= 0 || url.indexOf("www.googleapis.com/drive") > 0;
 }
 
 class Block {
