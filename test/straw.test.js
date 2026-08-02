@@ -141,20 +141,26 @@ describe('Straw', function () {
 
     }, 100000)
 
-    it('GEO file', async function () {
+    // Normalized query with no NVI supplied, forcing the norm vector index to be
+    // located over the wire.  Must agree with the NVI-supplied case above.
+    //
+    // This replaces a former test against a GEO-hosted fixture
+    // (ftp.ncbi.nlm.nih.gov/geo/samples/GSM2583nnn/GSM2583729) that was withdrawn
+    // upstream and now returns 403.
+    it('remote file contact records - without NVI', async function () {
 
         const straw = new Straw({
-            "url": "https://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2583nnn/GSM2583729/suppl/GSM2583729_H3K27ac_HiChIP_2.hic"
+            "url": "https://raw.githubusercontent.com/igvteam/igv-data/refs/heads/main/data/test/hic/test_chr22.hic"
         })
         const contactRecords = await straw.getContactRecords(
             "KR",
-            {chr: "arm_2L", start: 0, end: 1000000},
-            {chr: "arm_2L", start: 0, end: 1000000},
+            {chr: "22", start: 50000000, end: 100000000},
+            {chr: "22", start: 50000000, end: 100000000},
             "BP",
             100000
         )
 
-        assert.ok(contactRecords.length > 0)
+        assert.equal(contactRecords.length, 70)
 
     }, 100000)
 
