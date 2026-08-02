@@ -18,10 +18,22 @@ from a URL. Every `.hic` byte-range read in every consumer passes through its
 `read(position, length)`. There is exactly one `fetch` call in the library and it
 is here.
 
+**Default URL mapper** — the built-in rules that turn a URL a human plausibly
+pasted into one a byte-range GET can work against: a Dropbox share link becomes a
+direct-download link, an NCBI `ftp://` URL becomes `https://`. Always applied. A
+consumer cannot switch it off.
+
 **URL mapper** — the optional `config.mapUrl` function a consumer supplies to
-rewrite a URL before it is fetched. Replaces the built-in rules (Dropbox share
-links, NCBI FTP-to-HTTPS). Synchronous, pure, URL-in URL-out: it cannot touch
-headers, responses or Range semantics. See `docs/adr/0001`.
+rewrite a URL before it is fetched, composed on top of the default URL mapper.
+Synchronous, pure, URL-in URL-out: it cannot touch headers, responses or Range
+semantics. It exists so that development against an origin-restricted host does
+not require patching global `fetch`; it is not a production routing mechanism.
+See `docs/adr/0001`.
+
+**Logical URL** — the URL a consumer asked for. **Physical URL** — the URL
+actually fetched, after both mappers. The rest of the library reasons about the
+logical URL (the normalization-vector index is keyed on it, so a mapped URL does
+not lose the lookup); only the remote file knows the physical one.
 
 **Response detail** — the `headers` and `url` properties attached to the `Error`
 thrown on a failed read, alongside the existing `code`. Exists because the status
@@ -33,4 +45,7 @@ page instead of the file. hic-straw does not detect or interpret these; it
 surfaces the response detail and consumers decide what it means. The known case
 is AWS WAF in front of `www.encodeproject.org`, which serves
 `X-Amzn-Waf-Action: captcha` under a misleading `405` status to any request whose
-`Origin` is not on ENCODE's allowlist.
+`Origin` is not on ENCODE's allowlist. That header is readable from JavaScript:
+the challenge response sets `Access-Control-Expose-Headers: x-amzn-waf-action`.
+Only a browser sends `Origin`, so a bot challenge cannot be reproduced from Node
+and cannot be covered by this repo's tests.

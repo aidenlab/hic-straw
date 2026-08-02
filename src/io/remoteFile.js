@@ -4,14 +4,15 @@ class RemoteFile {
 
     constructor(args) {
         this.config = args
-        this.url = mapUrl(args.path || args.url)
+        const mapped = defaultMapUrl(args.path || args.url)
+        this.url = this.config.mapUrl ? this.config.mapUrl(mapped) : mapped
     }
 
 
     async read(position, length) {
 
         length = Math.ceil(length)
-        const headers = this.config.headers || {}
+        const headers = {...this.config.headers}
         const rangeString = "bytes=" + position + "-" + (position + length - 1)
         headers['Range'] = rangeString
 
@@ -36,9 +37,11 @@ class RemoteFile {
         const status = response.status
 
         if (status >= 400) {
-            console.error(`${status}  ${this.config.url}`)
-            const err = Error(response.statusText)
+            // statusText is empty over HTTP/2, so build a message that is never blank
+            const err = Error(`${status} ${response.statusText || 'error'} — ${url}`)
             err.code = status
+            err.headers = response.headers   // Headers instance, filtered by CORS in the browser
+            err.url = url                    // the url actually fetched, after mapping
             throw err
         } else {
             return response.arrayBuffer()
@@ -61,7 +64,7 @@ class RemoteFile {
 }
 
 
-function mapUrl(url) {
+function defaultMapUrl(url) {
 
     if (url.includes("//www.dropbox.com")) {
         return url.replace("//www.dropbox.com", "//dl.dropboxusercontent.com")
@@ -80,3 +83,4 @@ function addParameter(url, name, value) {
 
 
 export default RemoteFile
+export {defaultMapUrl}
