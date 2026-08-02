@@ -16,14 +16,11 @@ class RemoteFile {
         const rangeString = "bytes=" + position + "-" + (position + length - 1)
         headers['Range'] = rangeString
 
-        let url = this.url.slice()    // slice => copy
+        const url = this.url
         headers['User-Agent'] = 'IGV'
         if (this.config.oauthToken) {
             const token = resolveToken(this.config.oauthToken)
             headers['Authorization'] = `Bearer ${token}`
-        }
-        if (this.config.apiKey) {
-            url = addParameter(url, "key", this.config.apiKey)
         }
 
         const response = await fetch(url, {
@@ -73,12 +70,6 @@ function defaultMapUrl(url) {
     } else {
         return url
     }
-}
-
-
-function addParameter(url, name, value) {
-    const paramSeparator = url.includes("?") ? "&" : "?"
-    return url + paramSeparator + name + "=" + value
 }
 
 

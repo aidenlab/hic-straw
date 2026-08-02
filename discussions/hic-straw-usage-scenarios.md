@@ -711,8 +711,6 @@ Binary format with header, compressed contact blocks, and normalization vectors.
 | `io/bufferedFile.js` | Read-ahead buffering wrapper |
 | `io/browserLocalFile.js` | Browser Blob/File access |
 | `io/nodeLocalFile.mjs` | Node.js file system access |
-| `io/throttledFile.js` | Rate-limited file wrapper (for Google Drive etc.) |
-| `io/rateLimiter.js` | Token-bucket rate limiter used by ThrottledFile |
 | `nvi.js` | Hardcoded NVI lookup table for legacy hosted `.hic` files (speeds up init) |
 | `polygons.js` | Polygon intersection geometry (Separating Axis Theorem) |
 

@@ -129,7 +129,9 @@ and the URL. And the `console.error` that stood beside the throw fired on the
 `416` that `hicFile.js` treats as the normal "file has no norm vectors" path, so
 it is gone; a library reports by throwing.
 
-Released as **v3.1.0**, not v3.0.3 — a new config key is a feature.
+Released as **v4.0.0** — a new config key would have been a feature (v3.1.0), but
+this work ships alongside the removal of `config.apiKey` (issue #53), and
+removing a public config key is breaking.
 
 ## Reversal
 
