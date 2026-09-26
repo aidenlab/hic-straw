@@ -101,6 +101,27 @@ describe('RemoteFile read', function () {
         assert.deepEqual(headers, {'Authorization': 'Bearer xyz'})
     })
 
+    it('sends the IGV User-Agent under node, where the gated buckets need it', async function () {
+        const capture = {}
+        stubFetch({status: 200, arrayBuffer: async () => new ArrayBuffer(16)}, capture)
+
+        await new RemoteFile({url: 'https://hicfiles.s3.amazonaws.com/matrix.hic'}).read(0, 16)
+
+        assert.equal(capture.init.headers['User-Agent'], 'IGV')
+    })
+
+    it('sends no User-Agent in a browser, where it would force a CORS preflight', async function () {
+        const capture = {}
+        stubFetch({status: 200, arrayBuffer: async () => new ArrayBuffer(16)}, capture)
+        vi.stubGlobal('process', undefined)
+
+        await new RemoteFile({url: 'https://encode-public.s3.amazonaws.com/matrix.hic'}).read(0, 16)
+        vi.unstubAllGlobals()
+
+        assert.notProperty(capture.init.headers, 'User-Agent')
+        assert.deepEqual(Object.keys(capture.init.headers), ['Range'])
+    })
+
     it('carries response detail on the thrown error', async function () {
         stubFetch({
             status: 405,
