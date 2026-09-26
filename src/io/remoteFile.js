@@ -1,4 +1,5 @@
-const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null
+// Evaluated per read, not at import, so the browser path can be tested under node
+const isNode = () => typeof process !== 'undefined' && process.versions != null && process.versions.node != null
 
 class RemoteFile {
 
@@ -17,7 +18,14 @@ class RemoteFile {
         headers['Range'] = rangeString
 
         const url = this.url
-        headers['User-Agent'] = 'IGV'
+
+        // The hicfiles and dnazoo buckets serve 403 unless User-Agent starts with "IGV".  Only node
+        // can send that.  In a browser, Chrome drops it, while Firefox and Safari send it -- which
+        // makes it a non-safelisted header, forces a CORS preflight asking for "user-agent", and
+        // hosts that do not allow it (ENCODE's S3 bucket) answer that preflight with 403.
+        if (isNode()) {
+            headers['User-Agent'] = 'IGV'
+        }
         if (this.config.oauthToken) {
             const token = resolveToken(this.config.oauthToken)
             headers['Authorization'] = `Bearer ${token}`
